@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — E-Sertifikat Bogor Bugar 2026</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ============================= LOGIN ============================= -->
+<div class="login-shell" id="loginShell">
+  <div class="login-card">
+    <div class="brand">
+      <span class="brand-mark">SB</span>
+    </div>
+    <h1>Masuk ke Dashboard Admin</h1>
+    <p>Pelatihan Instruktur Senam Bogor Bugar 2026 · Kec. Cigombong</p>
+    <form id="loginForm" class="field-stack">
+      <div class="field">
+        <label for="loginUser">Username</label>
+        <input type="text" id="loginUser" autocomplete="username" required>
+      </div>
+      <div class="field">
+        <label for="loginPass">Password</label>
+        <input type="password" id="loginPass" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Masuk</button>
+      <div class="form-error" id="loginError"></div>
+    </form>
+    <p style="text-align:center;margin-top:18px;font-size:12.5px;"><a href="index.html">← Kembali ke halaman peserta</a></p>
+  </div>
+</div>
+
+<!-- ============================= DASHBOARD ============================= -->
+<div class="admin-shell" id="adminShell" style="display:none;">
+  <aside class="admin-side">
+    <div class="brand">
+      <span class="brand-mark">SB</span>
+      <span class="brand-text">E-Sertifikat
+        <small>Bogor Bugar 2026</small>
+      </span>
+    </div>
+    <nav class="admin-nav">
+      <button data-target="panelPengaturan" class="active">⚙️ Pengaturan</button>
+      <button data-target="panelInput">➕ Input Peserta</button>
+      <button data-target="panelPeserta">📋 Data Peserta</button>
+    </nav>
+    <button class="btn btn-ghost admin-logout" id="logoutBtn">Keluar</button>
+  </aside>
+
+  <main class="admin-main">
+
+    <!-- ---------- PANEL: PENGATURAN ---------- -->
+    <section class="admin-panel" id="panelPengaturan">
+      <div class="admin-header">
+        <div>
+          <h1>Pengaturan</h1>
+          <p>Atur informasi acara, blangko sertifikat, dan posisi teks/QR di atas blangko.</p>
+        </div>
+      </div>
+
+      <form id="settingsForm">
+        <div class="panel">
+          <h2>Informasi Acara</h2>
+          <p class="panel-desc">Digunakan pada penomoran kode sertifikat otomatis.</p>
+          <div class="field-grid">
+            <div class="field">
+              <label for="setEventName">Nama Kegiatan</label>
+              <input type="text" id="setEventName" placeholder="Pelatihan Instruktur Senam Bogor Bugar Tahun 2026">
+            </div>
+            <div class="field">
+              <label for="setKecamatan">Kecamatan</label>
+              <input type="text" id="setKecamatan" placeholder="Kecamatan Cigombong">
+            </div>
+            <div class="field">
+              <label for="setPrefix">Awalan Kode Sertifikat</label>
+              <input type="text" id="setPrefix" placeholder="SBB-2026-">
+              <span class="field-hint">Kode lengkap otomatis: SBB-2026-0001, SBB-2026-0002, dst.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Blangko / Latar Belakang Sertifikat</h2>
+          <p class="panel-desc">Unggah desain blangko kosong (PNG/JPG, orientasi landscape) yang akan otomatis diisi nama peserta.</p>
+          <div class="upload-drop" id="blangkoDrop">
+            📤 Klik untuk memilih gambar blangko (PNG/JPG)
+          </div>
+          <input type="file" id="blangkoFile" accept="image/png,image/jpeg" hidden>
+          <div class="upload-preview" id="blangkoPreview"></div>
+        </div>
+
+        <div class="panel">
+          <h2>Kalibrasi Posisi Teks &amp; QR Code</h2>
+          <p class="panel-desc">Atur posisi elemen di atas blangko dalam persen (0–100) dari lebar/tinggi sertifikat, lalu klik "Pratinjau Posisi" untuk melihat hasilnya.</p>
+          <div class="field-grid">
+            <div class="field"><label for="posNamaX">Nama — Posisi X (%)</label><input type="number" id="posNamaX" min="0" max="100" value="50"></div>
+            <div class="field"><label for="posNamaY">Nama — Posisi Y (%)</label><input type="number" id="posNamaY" min="0" max="100" value="46"></div>
+            <div class="field"><label for="posKodeX">Kode — Posisi X (%)</label><input type="number" id="posKodeX" min="0" max="100" value="94"></div>
+            <div class="field"><label for="posKodeY">Kode — Posisi Y (%)</label><input type="number" id="posKodeY" min="0" max="100" value="7"></div>
+            <div class="field"><label for="posInstansiY">Instansi — Posisi Y (%)</label><input type="number" id="posInstansiY" min="0" max="100" value="56"></div>
+            <div class="field"><label for="posTanggalY">Tanggal — Posisi Y (%)</label><input type="number" id="posTanggalY" min="0" max="100" value="66"></div>
+            <div class="field"><label for="posQrX">QR Code — Posisi X (%)</label><input type="number" id="posQrX" min="0" max="100" value="90"></div>
+            <div class="field"><label for="posQrY">QR Code — Posisi Y (%)</label><input type="number" id="posQrY" min="0" max="100" value="85"></div>
+          </div>
+          <div class="result-actions" style="margin-top:16px;">
+            <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi</button>
+            <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel/CSV</button>
+          </div>
+          <div class="upload-preview" id="previewWrap" style="display:none;margin-top:16px;">
+            <canvas id="previewCanvas" style="width:100%;height:auto;display:block;"></canvas>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Simpan Pengaturan</button>
+      </form>
+    </section>
+
+    <!-- ---------- PANEL: INPUT PESERTA ---------- -->
+    <section class="admin-panel" id="panelInput" style="display:none;">
+      <div class="admin-header">
+        <div>
+          <h1>Input Peserta</h1>
+          <p>Tambahkan peserta satu per satu, atau impor massal dari Excel/CSV.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Unggah Massal (Excel/CSV)</h2>
+        <p class="panel-desc">Gunakan format Template Excel/CSV pada menu Pengaturan. Kode sertifikat dibuat otomatis untuk setiap baris.</p>
+        <div class="upload-drop" id="bulkDrop">📤 Klik untuk memilih file .xlsx atau .csv</div>
+        <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" hidden>
+
+        <div class="panel" id="bulkPreview" style="display:none;margin-top:16px;background:var(--forest-tint);border:none;">
+          <h2>Pratinjau Data</h2>
+          <p class="panel-desc"></p>
+          <table class="data-table">
+            <thead><tr><th>Nama Lengkap</th><th>Instansi/Kecamatan</th><th>Tanggal Terbit</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <button type="button" class="btn btn-coral" id="confirmBulkBtn" style="margin-top:14px;">Konfirmasi Impor</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h2>Formulir Peserta Susulan</h2>
+        <p class="panel-desc">Untuk menambahkan peserta satuan bila ada susulan setelah impor massal.</p>
+        <form id="manualForm">
+          <div class="field-grid">
+            <div class="field">
+              <label for="manualNama">Nama Lengkap</label>
+              <input type="text" id="manualNama" required>
+            </div>
+            <div class="field">
+              <label for="manualInstansi">Instansi / Kecamatan</label>
+              <input type="text" id="manualInstansi">
+            </div>
+            <div class="field">
+              <label for="manualTanggal">Tanggal Terbit</label>
+              <input type="date" id="manualTanggal" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="margin-top:16px;">Tambah Peserta</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- ---------- PANEL: DATA PESERTA ---------- -->
+    <section class="admin-panel" id="panelPeserta" style="display:none;">
+      <div class="admin-header">
+        <div>
+          <h1>Data Peserta</h1>
+          <p>Kelola seluruh data peserta yang telah diinput.</p>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="toolbar">
+          <div class="search-row" style="max-width:320px;">
+            <input type="text" id="tableSearch" placeholder="Cari nama atau kode...">
+          </div>
+          <div>
+            <button class="btn btn-coral btn-sm" id="downloadAllBtn">Download Semua PDF (ZIP)</button>
+          </div>
+        </div>
+        <div class="progress-bar" id="bulkProgress" style="display:none;"><div></div></div>
+
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="pesertaTable">
+            <thead>
+              <tr><th>Kode</th><th>Nama</th><th>Instansi</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="pagination">
+          <span id="pageInfo">Halaman 1</span>
+          <div class="btns">
+            <button class="icon-btn" id="prevPageBtn">← Sebelumnya</button>
+            <button class="icon-btn" id="nextPageBtn">Berikutnya →</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ============================= MODAL EDIT ============================= -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3>Edit Peserta</h3>
+    <p class="panel-desc">Kode sertifikat: <strong id="editKodeLabel"></strong></p>
+    <form id="editForm" class="field-stack">
+      <div class="field">
+        <label for="editNama">Nama Lengkap</label>
+        <input type="text" id="editNama" required>
+      </div>
+      <div class="field">
+        <label for="editInstansi">Instansi / Kecamatan</label>
+        <input type="text" id="editInstansi">
+      </div>
+      <div class="field">
+        <label for="editTanggal">Tanggal Terbit</label>
+        <input type="date" id="editTanggal">
+      </div>
+      <div class="field">
+        <label for="editStatus">Status Sertifikat</label>
+        <select id="editStatus">
+          <option value="Aktif">Aktif</option>
+          <option value="Nonaktif">Nonaktif (dicabut)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost" id="modalCancelBtn">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Pustaka pihak ketiga (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="script.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

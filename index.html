@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Sertifikat — Pelatihan Instruktur Senam Bogor Bugar 2026</title>
+<meta name="description" content="Cari dan unduh sertifikat resmi Pelatihan Instruktur Senam Bogor Bugar Tahun 2026, Kecamatan Cigombong.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">SB</span>
+      <span class="brand-text">E-Sertifikat
+        <small>Bogor Bugar 2026 · Kec. Cigombong</small>
+      </span>
+    </a>
+    <a href="admin.html" class="topbar-link">Masuk Admin</a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="container hero-grid">
+    <div>
+      <span class="kicker">Pelatihan Instruktur Senam · Bogor Bugar 2026</span>
+      <h1>Cari &amp; unduh sertifikat pelatihan Anda</h1>
+      <p class="lead">Masukkan kode sertifikat (contoh: SBB-2026-0001) atau nama lengkap Anda untuk menampilkan dan mengunduh sertifikat resmi Pelatihan Instruktur Senam Bogor Bugar Tahun 2026, Kecamatan Cigombong.</p>
+
+      <form class="search-card" id="searchForm">
+        <label for="searchInput">Kode Sertifikat atau Nama Lengkap</label>
+        <div class="search-row">
+          <input type="text" id="searchInput" placeholder="mis. SBB-2026-0001 atau Budi Santoso" autocomplete="off" required>
+          <button type="submit" class="btn btn-primary">Cari Sertifikat</button>
+        </div>
+        <p class="search-hint">Kode sertifikat unik tertera di pojok kanan atas lembar sertifikat Anda.</p>
+      </form>
+    </div>
+
+    <div class="hero-art">
+      <div class="cert-mock">
+        <span class="cm-kode">SBB-2026-0001</span>
+        <p class="cm-title">Sertifikat Pelatihan Instruktur Senam</p>
+        <p class="cm-name">Nama Peserta</p>
+        <p class="cm-sub">Bogor Bugar 2026 · Kec. Cigombong</p>
+        <span class="cm-ribbon">★</span>
+        <span class="cm-qr"></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="result">
+  <div class="container">
+
+    <div class="empty-state" id="emptyState" style="display:none;">
+      <div class="glyph">🔍</div>
+      <p>Masukkan kode sertifikat atau nama lengkap pada kolom pencarian di atas.</p>
+    </div>
+
+    <div class="result-panel" id="resultPanel" style="display:none;">
+      <div class="result-status" id="resultStatus"><span class="dot"></span><span>Sertifikat terverifikasi asli</span></div>
+      <div class="result-body">
+        <div class="result-canvas-wrap">
+          <canvas id="certCanvas"></canvas>
+        </div>
+        <div>
+          <div class="result-meta">
+            <dl>
+              <div class="row"><dt>Kode Sertifikat</dt><dd id="metaKode">-</dd></div>
+              <div class="row"><dt>Nama Peserta</dt><dd id="metaNama">-</dd></div>
+              <div class="row"><dt>Instansi / Kecamatan</dt><dd id="metaInstansi">-</dd></div>
+              <div class="row"><dt>Tanggal Terbit</dt><dd id="metaTanggal">-</dd></div>
+            </dl>
+          </div>
+          <div class="result-actions">
+            <button id="downloadBtn" class="btn btn-coral">Download PDF (A4 Landscape)</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    Panitia Pelatihan Instruktur Senam Bogor Bugar 2026 · Kecamatan Cigombong<br>
+    Sistem E-Sertifikat dikembangkan oleh Eden Rendi, S.Pd.
+  </div>
+</footer>
+
+<!-- Pustaka pihak ketiga (CDN) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="script.js"></script>
+</body>
+</html>
