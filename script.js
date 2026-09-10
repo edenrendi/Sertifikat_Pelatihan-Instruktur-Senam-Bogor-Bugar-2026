@@ -15,7 +15,7 @@
  * ------------------------------------------------------------------- */
 const CONFIG = {
   // GANTI dengan URL Web App hasil deploy Google Apps Script (lihat PANDUAN-DEPLOY.md)
-  API_URL: 'https://script.google.com/macros/s/GANTI_DENGAN_DEPLOYMENT_ID/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxCEnQHs0rjFfQar16v6giRqfk-fM7NXMxE7xjb1UX-CYFLDZ8b5yAVXB7HzVp1Hpb5KA/exec',
 
   EVENT_NAME: 'Pelatihan Instruktur Senam Bogor Bugar Tahun 2026',
   EVENT_LOCATION: 'Kecamatan Cigombong',
