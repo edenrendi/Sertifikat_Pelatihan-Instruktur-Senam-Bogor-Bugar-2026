@@ -93,19 +93,52 @@
 
         <div class="panel">
           <h2>Kalibrasi Posisi Teks &amp; QR Code</h2>
-          <p class="panel-desc">Atur posisi elemen di atas blangko dalam persen (0–100) dari lebar/tinggi sertifikat, lalu klik "Pratinjau Posisi" untuk melihat hasilnya.</p>
+          <p class="panel-desc">Blangko sudah lengkap — cukup atur posisi Nama, Kode Sertifikat, dan QR Code dalam persen (0–100) dari lebar/tinggi sertifikat, lalu klik "Pratinjau Posisi" untuk melihat hasilnya.</p>
           <div class="field-grid">
             <div class="field"><label for="posNamaX">Nama — Posisi X (%)</label><input type="number" id="posNamaX" min="0" max="100" value="50"></div>
             <div class="field"><label for="posNamaY">Nama — Posisi Y (%)</label><input type="number" id="posNamaY" min="0" max="100" value="46"></div>
             <div class="field"><label for="posKodeX">Kode — Posisi X (%)</label><input type="number" id="posKodeX" min="0" max="100" value="94"></div>
             <div class="field"><label for="posKodeY">Kode — Posisi Y (%)</label><input type="number" id="posKodeY" min="0" max="100" value="7"></div>
-            <div class="field"><label for="posInstansiY">Instansi — Posisi Y (%)</label><input type="number" id="posInstansiY" min="0" max="100" value="56"></div>
-            <div class="field"><label for="posTanggalY">Tanggal — Posisi Y (%)</label><input type="number" id="posTanggalY" min="0" max="100" value="66"></div>
             <div class="field"><label for="posQrX">QR Code — Posisi X (%)</label><input type="number" id="posQrX" min="0" max="100" value="90"></div>
             <div class="field"><label for="posQrY">QR Code — Posisi Y (%)</label><input type="number" id="posQrY" min="0" max="100" value="85"></div>
           </div>
+        </div>
+
+        <div class="panel">
+          <h2>Warna &amp; Jenis Font</h2>
+          <p class="panel-desc">Sesuaikan tampilan teks Nama Peserta dan Kode Sertifikat agar cocok dengan gaya blangko Anda.</p>
+          <div class="field-grid">
+            <div class="field"><label for="namaFontFamily">Nama — Jenis Font</label>
+              <select id="namaFontFamily">
+                <option value="Archivo">Archivo (tegas)</option>
+                <option value="Inter">Inter (modern)</option>
+                <option value="Playfair Display">Playfair Display (elegan/serif)</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="field"><label for="namaFontSize">Nama — Ukuran Font (px)</label><input type="number" id="namaFontSize" min="20" max="200" value="96"></div>
+            <div class="field"><label for="namaColor">Nama — Warna Font</label><input type="color" id="namaColor" value="#14532D"></div>
+
+            <div class="field"><label for="kodeFontFamily">Kode Sertifikat — Jenis Font</label>
+              <select id="kodeFontFamily">
+                <option value="Archivo">Archivo</option>
+                <option value="Inter">Inter (modern)</option>
+                <option value="Playfair Display">Playfair Display</option>
+                <option value="Montserrat">Montserrat</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="field"><label for="kodeFontSize">Kode Sertifikat — Ukuran Font (px)</label><input type="number" id="kodeFontSize" min="14" max="100" value="34"></div>
+            <div class="field"><label for="kodeColor">Kode Sertifikat — Warna Font</label><input type="color" id="kodeColor" value="#14532D"></div>
+          </div>
+
           <div class="result-actions" style="margin-top:16px;">
-            <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi</button>
+            <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi &amp; Font</button>
             <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel/CSV</button>
           </div>
           <div class="upload-preview" id="previewWrap" style="display:none;margin-top:16px;">
@@ -136,7 +169,7 @@
           <h2>Pratinjau Data</h2>
           <p class="panel-desc"></p>
           <table class="data-table">
-            <thead><tr><th>Nama Lengkap</th><th>Instansi/Kecamatan</th><th>Tanggal Terbit</th></tr></thead>
+            <thead><tr><th>Nama Lengkap</th><th>Nama Sekolah</th></tr></thead>
             <tbody></tbody>
           </table>
           <button type="button" class="btn btn-coral" id="confirmBulkBtn" style="margin-top:14px;">Konfirmasi Impor</button>
@@ -153,12 +186,8 @@
               <input type="text" id="manualNama" required>
             </div>
             <div class="field">
-              <label for="manualInstansi">Instansi / Kecamatan</label>
+              <label for="manualInstansi">Nama Sekolah</label>
               <input type="text" id="manualInstansi">
-            </div>
-            <div class="field">
-              <label for="manualTanggal">Tanggal Terbit</label>
-              <input type="date" id="manualTanggal" required>
             </div>
           </div>
           <button type="submit" class="btn btn-primary" style="margin-top:16px;">Tambah Peserta</button>
@@ -189,7 +218,7 @@
         <div style="overflow-x:auto;">
           <table class="data-table" id="pesertaTable">
             <thead>
-              <tr><th>Kode</th><th>Nama</th><th>Instansi</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
+              <tr><th>Kode</th><th>Nama</th><th>Nama Sekolah</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -219,12 +248,8 @@
         <input type="text" id="editNama" required>
       </div>
       <div class="field">
-        <label for="editInstansi">Instansi / Kecamatan</label>
+        <label for="editInstansi">Nama Sekolah</label>
         <input type="text" id="editInstansi">
-      </div>
-      <div class="field">
-        <label for="editTanggal">Tanggal Terbit</label>
-        <input type="date" id="editTanggal">
       </div>
       <div class="field">
         <label for="editStatus">Status Sertifikat</label>
