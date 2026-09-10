@@ -15,7 +15,7 @@
  * ------------------------------------------------------------------- */
 const CONFIG = {
   // GANTI dengan URL Web App hasil deploy Google Apps Script (lihat PANDUAN-DEPLOY.md)
-  API_URL: 'https://script.google.com/macros/s/AKfycbxCEnQHs0rjFfQar16v6giRqfk-fM7NXMxE7xjb1UX-CYFLDZ8b5yAVXB7HzVp1Hpb5KA/exec',
+  API_URL: 'https://script.google.com/macros/s/GANTI_DENGAN_DEPLOYMENT_ID/exec',
 
   EVENT_NAME: 'Pelatihan Instruktur Senam Bogor Bugar Tahun 2026',
   EVENT_LOCATION: 'Kecamatan Cigombong',
@@ -25,14 +25,16 @@ const CONFIG = {
   CERT_HEIGHT: 2480,
 
   // Posisi elemen di atas blangko, dalam PERSEN (0-1) dari lebar/tinggi kanvas.
+  // Blangko sudah lengkap (hanya Nama & Kode yang dicetak dinamis oleh sistem).
   // Nilai default ini bisa ditimpa oleh Settings yang disimpan admin (lihat loadSettings()).
   LAYOUT: {
-    kode:      { xPct: 0.945, yPct: 0.075, align: 'right',  font: '700 34px Inter',       color: '#14532D' },
-    nama:      { xPct: 0.5,   yPct: 0.46,  align: 'center', font: '900 96px Archivo',     color: '#14532D' },
-    instansi:  { xPct: 0.5,   yPct: 0.565, align: 'center', font: '500 36px Inter',       color: '#333333' },
-    tanggal:   { xPct: 0.5,   yPct: 0.66,  align: 'center', font: '400 30px Inter',       color: '#4B564E' },
-    qr:        { xPct: 0.90,  yPct: 0.855, sizePct: 0.10 }
+    kode: { xPct: 0.945, yPct: 0.075, align: 'right',  color: '#14532D', fontFamily: 'Inter',   fontWeight: '700', fontSize: 34 },
+    nama: { xPct: 0.5,   yPct: 0.46,  align: 'center', color: '#14532D', fontFamily: 'Archivo', fontWeight: '900', fontSize: 96 },
+    qr:   { xPct: 0.90,  yPct: 0.855, sizePct: 0.10 }
   },
+
+  // Pilihan jenis font yang tersedia untuk Nama & Kode di menu Pengaturan
+  FONT_CHOICES: ['Archivo', 'Inter', 'Playfair Display', 'Montserrat', 'Georgia', 'Times New Roman', 'Arial'],
 
   // URL dasar untuk link verifikasi yang ditanam di QR Code (auto terisi dari lokasi halaman saat ini)
   get VERIFY_BASE_URL() {
@@ -140,20 +142,31 @@ const CertRenderer = {
       }
     }
 
+    const fontString = (cfg) => `${cfg.fontWeight || '400'} ${cfg.fontSize}px "${cfg.fontFamily}"`;
+
+    // Pastikan web font (Archivo/Inter/Playfair Display/Montserrat) sudah termuat
+    // sebelum digambar, supaya tidak jatuh ke font fallback pada render pertama.
+    try {
+      const toLoad = ['kode', 'nama'].filter((k) => L[k]).map((k) => document.fonts.load(fontString(L[k])));
+      await Promise.all(toLoad);
+      await document.fonts.ready;
+    } catch (e) { /* abaikan jika API fonts tidak didukung */ }
+
     const drawText = (key, text) => {
       const cfg = L[key];
       if (!cfg || !text) return;
-      ctx.font = cfg.font;
+      ctx.font = fontString(cfg);
       ctx.fillStyle = cfg.color;
       ctx.textAlign = cfg.align;
       ctx.textBaseline = 'middle';
       ctx.fillText(text, W * cfg.xPct, H * cfg.yPct);
     };
 
+    // Hanya Nama & Kode yang dicetak dinamis — Nama Sekolah tetap tersimpan sebagai
+    // data (tampil di tabel admin & halaman verifikasi) tapi tidak digambar di atas
+    // blangko, karena blangko sudah lengkap.
     drawText('kode', data.kode);
     drawText('nama', data.nama);
-    drawText('instansi', data.instansi);
-    drawText('tanggal', data.tanggal);
 
     // QR code -> mengarah ke halaman verifikasi
     const qrCfg = L.qr;
