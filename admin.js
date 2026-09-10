@@ -118,15 +118,24 @@ const Admin = {
     if (res.data.blangkoUrl) {
       document.getElementById('blangkoPreview').innerHTML = `<img src="${res.data.blangkoUrl}" alt="Blangko sertifikat">`;
     }
-    const L = Object.assign({}, CONFIG.LAYOUT, res.data.layout || {});
+    const L = {
+      kode: Object.assign({}, CONFIG.LAYOUT.kode, (res.data.layout && res.data.layout.kode) || {}),
+      nama: Object.assign({}, CONFIG.LAYOUT.nama, (res.data.layout && res.data.layout.nama) || {}),
+      qr: Object.assign({}, CONFIG.LAYOUT.qr, (res.data.layout && res.data.layout.qr) || {})
+    };
     document.getElementById('posNamaX').value = Math.round(L.nama.xPct * 100);
     document.getElementById('posNamaY').value = Math.round(L.nama.yPct * 100);
     document.getElementById('posKodeX').value = Math.round(L.kode.xPct * 100);
     document.getElementById('posKodeY').value = Math.round(L.kode.yPct * 100);
-    document.getElementById('posInstansiY').value = Math.round(L.instansi.yPct * 100);
-    document.getElementById('posTanggalY').value = Math.round(L.tanggal.yPct * 100);
     document.getElementById('posQrX').value = Math.round(L.qr.xPct * 100);
     document.getElementById('posQrY').value = Math.round(L.qr.yPct * 100);
+
+    document.getElementById('namaFontFamily').value = L.nama.fontFamily;
+    document.getElementById('namaFontSize').value = L.nama.fontSize;
+    document.getElementById('namaColor').value = L.nama.color;
+    document.getElementById('kodeFontFamily').value = L.kode.fontFamily;
+    document.getElementById('kodeFontSize').value = L.kode.fontSize;
+    document.getElementById('kodeColor').value = L.kode.color;
   },
 
   bindSettingsForm() {
@@ -144,14 +153,19 @@ const Admin = {
       const btn = form.querySelector('button[type="submit"]');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>Menyimpan...';
+      function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+      function val(id) { return document.getElementById(id).value; }
       const layout = {
-        nama: Object.assign({}, CONFIG.LAYOUT.nama, { xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100 }),
-        kode: Object.assign({}, CONFIG.LAYOUT.kode, { xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100 }),
-        instansi: Object.assign({}, CONFIG.LAYOUT.instansi, { yPct: num('posInstansiY') / 100 }),
-        tanggal: Object.assign({}, CONFIG.LAYOUT.tanggal, { yPct: num('posTanggalY') / 100 }),
+        nama: Object.assign({}, CONFIG.LAYOUT.nama, {
+          xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100,
+          fontFamily: val('namaFontFamily'), fontSize: num('namaFontSize'), color: val('namaColor')
+        }),
+        kode: Object.assign({}, CONFIG.LAYOUT.kode, {
+          xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100,
+          fontFamily: val('kodeFontFamily'), fontSize: num('kodeFontSize'), color: val('kodeColor')
+        }),
         qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 })
       };
-      function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
       try {
         const res = await API.post('updateSettings', {
           settings: {
@@ -209,27 +223,30 @@ const Admin = {
       this.toast('Unggah blangko terlebih dahulu.', 'error');
       return;
     }
+    function num(x) { return parseFloat(document.getElementById(x).value) || 0; }
+    function val(x) { return document.getElementById(x).value; }
     const layout = {
-      kode: { ...CONFIG.LAYOUT.kode, xPct: id('posKodeX') / 100, yPct: id('posKodeY') / 100 },
-      nama: { ...CONFIG.LAYOUT.nama, xPct: id('posNamaX') / 100, yPct: id('posNamaY') / 100 },
-      instansi: { ...CONFIG.LAYOUT.instansi, yPct: id('posInstansiY') / 100 },
-      tanggal: { ...CONFIG.LAYOUT.tanggal, yPct: id('posTanggalY') / 100 },
-      qr: { ...CONFIG.LAYOUT.qr, xPct: id('posQrX') / 100, yPct: id('posQrY') / 100 }
+      kode: {
+        ...CONFIG.LAYOUT.kode, xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100,
+        fontFamily: val('kodeFontFamily'), fontSize: num('kodeFontSize'), color: val('kodeColor')
+      },
+      nama: {
+        ...CONFIG.LAYOUT.nama, xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100,
+        fontFamily: val('namaFontFamily'), fontSize: num('namaFontSize'), color: val('namaColor')
+      },
+      qr: { ...CONFIG.LAYOUT.qr, xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 }
     };
-    function id(x) { return parseFloat(document.getElementById(x).value) || 0; }
     const canvas = document.getElementById('previewCanvas');
     document.getElementById('previewWrap').style.display = 'block';
     await CertRenderer.draw(canvas, {
       kode: (this.state.settings.kodePrefix || 'SBB-2026-') + '0001',
-      nama: 'Nama Peserta Contoh',
-      instansi: 'SD Negeri Cigombong 03',
-      tanggal: new Date().toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })
+      nama: 'Nama Peserta Contoh'
     }, this.state.settings.blangkoUrl, layout);
   },
 
   downloadTemplateCsv() {
-    const header = 'Nama Lengkap,Instansi/Kecamatan,Tanggal Terbit\n';
-    const sample = 'Contoh Nama Peserta,SD Negeri Cigombong 01,10/09/2026\n';
+    const header = 'No,Nama,Nama Sekolah\n';
+    const sample = '1,Contoh Nama Peserta,SD Negeri Cigombong 01\n2,Contoh Nama Peserta Dua,SD Negeri Cigombong 02\n';
     const blob = new Blob([header + sample], { type: 'text/csv;charset=utf-8' });
     CertRenderer.downloadBlob(blob, 'Template-Data-Peserta.csv');
   },
@@ -247,8 +264,7 @@ const Admin = {
         const res = await API.post('addPeserta', {
           data: {
             nama: document.getElementById('manualNama').value.trim(),
-            instansi: document.getElementById('manualInstansi').value.trim(),
-            tanggal: document.getElementById('manualTanggal').value
+            instansi: document.getElementById('manualInstansi').value.trim()
           }
         });
         if (res.success) {
@@ -289,9 +305,8 @@ const Admin = {
           return;
         }
         const mapped = rows.map((r) => ({
-          nama: (r['Nama Lengkap'] || r['Nama'] || '').toString().trim(),
-          instansi: (r['Instansi/Kecamatan'] || r['Instansi'] || '').toString().trim(),
-          tanggal: (r['Tanggal Terbit'] || r['Tanggal'] || '').toString().trim()
+          nama: (r['Nama'] || r['Nama Lengkap'] || '').toString().trim(),
+          instansi: (r['Nama Sekolah'] || r['Instansi/Kecamatan'] || r['Instansi'] || '').toString().trim()
         })).filter((r) => r.nama);
 
         if (!mapped.length) {
@@ -312,9 +327,9 @@ const Admin = {
     box.style.display = 'block';
     box.querySelector('.panel-desc').textContent = `${rows.length} peserta siap diimpor. Kode sertifikat akan dibuat otomatis.`;
     const tbody = box.querySelector('tbody');
-    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td><td>${escapeHtml(r.tanggal)}</td></tr>`).join('');
+    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td></tr>`).join('');
     if (rows.length > 8) {
-      tbody.innerHTML += `<tr><td colspan="3" style="color:var(--ink-soft)">+ ${rows.length - 8} baris lainnya...</td></tr>`;
+      tbody.innerHTML += `<tr><td colspan="2" style="color:var(--ink-soft)">+ ${rows.length - 8} baris lainnya...</td></tr>`;
     }
     document.getElementById('confirmBulkBtn').onclick = () => this.confirmBulkImport();
   },
@@ -470,7 +485,6 @@ const Admin = {
             data: {
               nama: document.getElementById('editNama').value.trim(),
               instansi: document.getElementById('editInstansi').value.trim(),
-              tanggal: document.getElementById('editTanggal').value,
               status: document.getElementById('editStatus').value
             }
           });
@@ -494,7 +508,6 @@ const Admin = {
     document.getElementById('editKodeLabel').textContent = row.kode;
     document.getElementById('editNama').value = row.nama;
     document.getElementById('editInstansi').value = row.instansi || '';
-    document.getElementById('editTanggal').value = row.tanggal || '';
     document.getElementById('editStatus').value = row.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif';
     document.getElementById('modalOverlay').classList.add('show');
   },
