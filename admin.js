@@ -39,7 +39,22 @@ const Admin = {
     this.bindBulkUpload();
     this.bindTableToolbar();
     this.bindModal();
+    this.bindStickyHeaders();
     Review.bind();
+  },
+
+  /* ---------------- FREEZE JUDUL HALAMAN SAAT DI-SCROLL ---------------- */
+  bindStickyHeaders() {
+    const headers = document.querySelectorAll('.admin-header');
+    if (!headers.length) return;
+    const onScroll = () => {
+      headers.forEach((h) => {
+        if (h.offsetParent === null) return; // panel sedang tersembunyi
+        h.classList.toggle('is-stuck', h.getBoundingClientRect().top <= 0);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
   },
 
   toast(message, type = '') {
@@ -143,7 +158,7 @@ const Admin = {
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
       const url = res.data[key + 'Url'];
       const previewEl = document.getElementById(key + 'Preview');
-      if (previewEl) previewEl.innerHTML = url ? `<img src="${url}" alt="${key}">` : '<span class="upload-preview-empty">Belum diunggah</span>';
+      if (previewEl) previewEl.innerHTML = url ? `<img src="${url}" alt="${key}">` : '<span class="upload-preview-empty">📤</span>';
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
       const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
       const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
@@ -151,6 +166,9 @@ const Admin = {
       if (yEl) yEl.value = Math.round(L[key].yPct * 100);
       if (sEl) sEl.value = Math.round(L[key].sizePct * 100);
     });
+
+    // Tampilkan pratinjau posisi & font begitu blangko sudah ada, tanpa perlu diklik.
+    if (res.data.blangkoUrl) this.previewPosisi();
   },
 
   bindSettingsForm() {
@@ -173,59 +191,139 @@ const Admin = {
 
     const form = document.getElementById('settingsForm');
     if (!form) return;
+
+    // Simpan manual lewat tombol tetap tersedia, tapi sekarang perubahan juga
+    // otomatis tersimpan (lihat scheduleAutosave) jadi tombol ini opsional saja.
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const btn = form.querySelector('button[type="submit"]');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>Menyimpan...';
-      function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
-      function val(id) { return document.getElementById(id).value; }
-      const layout = {
-        nama: Object.assign({}, CONFIG.LAYOUT.nama, {
-          xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100,
-          fontFamily: val('namaFontFamily'), fontSize: num('namaFontSize'), color: val('namaColor')
-        }),
-        kode: Object.assign({}, CONFIG.LAYOUT.kode, {
-          xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100,
-          fontFamily: val('kodeFontFamily'), fontSize: num('kodeFontSize'), color: val('kodeColor')
-        }),
-        qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 })
-      };
-      // Posisi & ukuran untuk aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO
-      CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
-        const xEl = document.getElementById('pos' + capitalize(key) + 'X');
-        const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
-        const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
-        if (!xEl) return;
-        layout[key] = Object.assign({}, CONFIG.LAYOUT[key], {
-          xPct: (parseFloat(xEl.value) || 0) / 100,
-          yPct: (parseFloat(yEl.value) || 0) / 100,
-          sizePct: (parseFloat(sEl.value) || 0) / 100
-        });
-      });
       try {
-        const res = await API.post('updateSettings', {
-          settings: {
-            eventName: document.getElementById('setEventName').value.trim(),
-            kecamatan: document.getElementById('setKecamatan').value.trim(),
-            kodePrefix: document.getElementById('setPrefix').value.trim(),
-            layout
-          }
-        });
-        if (res.success) {
-          this.toast('Pengaturan tersimpan.', 'success');
-          Object.assign(CONFIG.LAYOUT, layout);
-          this.loadSettings();
-        } else {
-          this.toast(res.message || 'Gagal menyimpan pengaturan.', 'error');
-        }
+        await this.saveSettings({ silent: false });
       } finally {
         btn.disabled = false;
         btn.textContent = 'Simpan Pengaturan';
       }
     });
 
-    document.getElementById('previewPosisiBtn').addEventListener('click', () => this.previewPosisi());
+    // ---- Pratinjau posisi & font real-time + autosave otomatis ----
+    // Semua field posisi/warna/font sekaligus memicu (1) pratinjau langsung
+    // tanpa perlu klik tombol, dan (2) autosave setelah pengguna berhenti mengetik sejenak.
+    const liveFieldIds = [
+      'posNamaX', 'posNamaY', 'posKodeX', 'posKodeY', 'posQrX', 'posQrY',
+      'namaFontFamily', 'namaFontSize', 'namaColor',
+      'kodeFontFamily', 'kodeFontSize', 'kodeColor'
+    ];
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      liveFieldIds.push('pos' + capitalize(key) + 'X', 'pos' + capitalize(key) + 'Y', 'pos' + capitalize(key) + 'Size');
+    });
+    const infoFieldIds = ['setEventName', 'setKecamatan', 'setPrefix'];
+
+    let previewTimer = null;
+    const scheduleLivePreview = () => {
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(() => this.previewPosisi({ silent: true }), 120);
+    };
+
+    liveFieldIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => { scheduleLivePreview(); this.scheduleAutosave(); });
+    });
+    infoFieldIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => this.scheduleAutosave());
+    });
+
+    // Tombol "Pratinjau" tetap ada sebagai penyegar manual bila diperlukan.
+    const previewBtn = document.getElementById('previewPosisiBtn');
+    if (previewBtn) previewBtn.addEventListener('click', () => this.previewPosisi());
+  },
+
+  /* ---------------- SIMPAN PENGATURAN (dipakai submit manual & autosave) ---------------- */
+  buildLayoutFromForm() {
+    function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+    function val(id) { return document.getElementById(id).value; }
+    const layout = {
+      nama: Object.assign({}, CONFIG.LAYOUT.nama, {
+        xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100,
+        fontFamily: val('namaFontFamily'), fontSize: num('namaFontSize'), color: val('namaColor')
+      }),
+      kode: Object.assign({}, CONFIG.LAYOUT.kode, {
+        xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100,
+        fontFamily: val('kodeFontFamily'), fontSize: num('kodeFontSize'), color: val('kodeColor')
+      }),
+      qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 })
+    };
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      const xEl = document.getElementById('pos' + capitalize(key) + 'X');
+      const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
+      const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
+      if (!xEl) return;
+      layout[key] = Object.assign({}, CONFIG.LAYOUT[key], {
+        xPct: (parseFloat(xEl.value) || 0) / 100,
+        yPct: (parseFloat(yEl.value) || 0) / 100,
+        sizePct: (parseFloat(sEl.value) || 0) / 100
+      });
+    });
+    return layout;
+  },
+
+  async saveSettings({ silent } = { silent: true }) {
+    const layout = this.buildLayoutFromForm();
+    this.setAutosaveStatus('saving');
+    try {
+      const res = await API.post('updateSettings', {
+        settings: {
+          eventName: document.getElementById('setEventName').value.trim(),
+          kecamatan: document.getElementById('setKecamatan').value.trim(),
+          kodePrefix: document.getElementById('setPrefix').value.trim(),
+          layout
+        }
+      });
+      if (res.success) {
+        Object.assign(CONFIG.LAYOUT, layout);
+        if (this.state.settings) this.state.settings = Object.assign({}, this.state.settings, { layout });
+        this.setAutosaveStatus('saved');
+        if (!silent) this.toast('Pengaturan tersimpan.', 'success');
+        else this.toast('Perubahan tersimpan otomatis.', 'success');
+      } else {
+        this.setAutosaveStatus('error');
+        this.toast(res.message || 'Gagal menyimpan pengaturan.', 'error');
+      }
+      return res;
+    } catch (e) {
+      this.setAutosaveStatus('error');
+      this.toast('Gagal menyimpan pengaturan. Periksa koneksi internet.', 'error');
+      return { success: false };
+    }
+  },
+
+  scheduleAutosave() {
+    this.setAutosaveStatus('pending');
+    clearTimeout(this._autosaveTimer);
+    this._autosaveTimer = setTimeout(() => this.saveSettings({ silent: true }), 1200);
+  },
+
+  setAutosaveStatus(status) {
+    const el = document.getElementById('autosaveStatus');
+    if (!el) return;
+    el.classList.remove('saving', 'saved', 'error');
+    if (status === 'pending') {
+      el.classList.add('saving');
+      el.querySelector('span:last-child').textContent = 'Perubahan belum disimpan...';
+    } else if (status === 'saving') {
+      el.classList.add('saving');
+      el.querySelector('span:last-child').textContent = 'Menyimpan...';
+    } else if (status === 'saved') {
+      el.classList.add('saved');
+      el.querySelector('span:last-child').textContent = 'Tersimpan otomatis';
+    } else if (status === 'error') {
+      el.classList.add('error');
+      el.querySelector('span:last-child').textContent = 'Gagal menyimpan';
+    }
   },
 
   async handleBlangkoFile(file) {
@@ -245,7 +343,9 @@ const Admin = {
       if (res.success) {
         document.getElementById('blangkoPreview').innerHTML = `<img src="${res.url}" alt="Blangko sertifikat">`;
         CertRenderer._blangkoCache = null;
+        if (this.state.settings) this.state.settings.blangkoUrl = res.url;
         this.toast('Blangko berhasil diunggah.', 'success');
+        this.previewPosisi();
       } else {
         this.toast(res.message || 'Gagal mengunggah blangko.', 'error');
       }
@@ -254,9 +354,10 @@ const Admin = {
     }
   },
 
-  async previewPosisi() {
+  async previewPosisi(opts) {
+    const { silent } = opts || {};
     if (!this.state.settings || !this.state.settings.blangkoUrl) {
-      this.toast('Unggah blangko terlebih dahulu.', 'error');
+      if (!silent) this.toast('Unggah blangko terlebih dahulu.', 'error');
       return;
     }
     function num(x) { return parseFloat(document.getElementById(x).value) || 0; }
@@ -298,7 +399,7 @@ const Admin = {
     }
     const previewEl = document.getElementById(kind + 'Preview');
     const labels = { logo: 'Logo', ttdKkks: 'TTD Ketua KKKS', stempel: 'Stempel', ttdKkgo: 'TTD Ketua KKGO' };
-    previewEl.innerHTML = '<span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memproses latar...';
+    previewEl.innerHTML = '<span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span>';
     try {
       // Latar putih (dari foto/scan TTD atau stempel di kertas putih) dihapus otomatis
       // di browser sebelum diunggah, supaya aset bisa ditempel transparan di atas blangko.
@@ -314,12 +415,13 @@ const Admin = {
         CertRenderer._assetCache = {};
         if (this.state.settings) this.state.settings[kind + 'Url'] = res.url;
         this.toast(`${labels[kind] || 'Aset'} berhasil diunggah, latar putih dihapus otomatis.`, 'success');
+        this.previewPosisi();
       } else {
-        previewEl.innerHTML = '<span class="upload-preview-empty">Belum diunggah</span>';
+        previewEl.innerHTML = '<span class="upload-preview-empty">📤</span>';
         this.toast(res.message || 'Gagal mengunggah aset.', 'error');
       }
     } catch (e) {
-      previewEl.innerHTML = '<span class="upload-preview-empty">Belum diunggah</span>';
+      previewEl.innerHTML = '<span class="upload-preview-empty">📤</span>';
       this.toast('Gagal memproses gambar. Coba file lain.', 'error');
     }
   },
