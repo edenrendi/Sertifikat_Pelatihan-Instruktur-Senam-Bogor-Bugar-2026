@@ -8,19 +8,19 @@
 @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;900&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@400;600;700;900&display=swap');
 
 :root{
-  --bg:            #F5F6F0;   /* off-white kehijauan, bukan krem generik */
+  --bg:            #EEF3FA;   /* biru-putih lembut, gaya portal pemerintah */
   --surface:       #FFFFFF;
-  --ink:           #16201A;   /* nyaris hitam, undertone hijau */
-  --ink-soft:      #4B564E;
-  --forest:        #14532D;   /* hijau hutan — warna utama */
-  --forest-dark:   #0D3B21;
-  --forest-tint:   #E6EEE7;
-  --gold:          #C98E12;   /* emas medali — pencapaian */
-  --gold-tint:     #FBF0D9;
-  --coral:         #D9481F;   /* aksen energi — CTA */
-  --coral-dark:    #B23A17;
-  --line:          rgba(20,83,45,.16);
-  --shadow:        0 18px 40px -20px rgba(13,59,33,.35);
+  --ink:           #0F1C2E;   /* nyaris hitam, undertone biru */
+  --ink-soft:      #55606E;
+  --forest:        #0B3D91;   /* biru institusi — warna utama (dipakai sbg nama var lama) */
+  --forest-dark:   #072858;
+  --forest-tint:   #E3EAF9;
+  --gold:          #D98A0A;   /* aksen kuning/oranye — pencapaian */
+  --gold-tint:     #FCF0DC;
+  --coral:         #D6293D;   /* merah — aksen CTA */
+  --coral-dark:    #AC1E30;
+  --line:          rgba(11,61,145,.16);
+  --shadow:        0 18px 40px -20px rgba(7,40,88,.35);
   --radius-lg:     22px;
   --radius-md:     14px;
   --radius-sm:     8px;
@@ -69,6 +69,8 @@ input, select, textarea{ font-family:inherit; }
   display:flex; align-items:center; justify-content:center;
   color:#fff; font-family:var(--font-display); font-weight:900; font-size:15px;
 }
+.brand-mark.has-logo{ background:#fff; border:1px solid var(--line); padding:3px; }
+.brand-mark img{ width:100%; height:100%; object-fit:contain; border-radius:6px; }
 .brand-text{ font-family:var(--font-display); font-weight:700; font-size:15px; color:var(--ink); }
 .brand-text small{ display:block; font-family:var(--font-body); font-weight:500; font-size:11.5px; color:var(--ink-soft); }
 .topbar-link{
@@ -306,6 +308,33 @@ input, select, textarea{ font-family:inherit; }
 .upload-drop:hover{ border-color:var(--forest); background:var(--forest-tint); }
 .upload-preview{ margin-top:14px; border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden; }
 
+/* Baris pengaturan 2 kolom: panel input di kiri, pratinjau langsung di kanan
+   (sejajar tinggi) -> memakai ruang kosong yang tadinya kosong di sisi kanan. */
+.settings-row{ display:grid; grid-template-columns:1fr 1fr; gap:20px; align-items:stretch; }
+.settings-row .panel{ margin-bottom:0; display:flex; flex-direction:column; }
+.upload-preview-lg{
+  margin-top:0; flex:1; min-height:180px; display:flex; align-items:center; justify-content:center;
+  background:var(--forest-tint);
+}
+.upload-preview-lg img{ width:100%; height:auto; object-fit:contain; }
+.upload-preview-empty{ color:var(--ink-soft); font-size:13px; padding:20px; text-align:center; }
+
+/* Baris per-aset (logo/TTD/stempel): thumbnail kecil di kiri, field posisi & ukuran di kanan. */
+.asset-row{
+  display:grid; grid-template-columns:170px 1fr; gap:16px; align-items:start;
+  padding:16px 0; border-top:1px solid var(--line);
+}
+.asset-row:first-of-type{ border-top:none; padding-top:0; }
+.asset-row-upload{ display:flex; flex-direction:column; gap:8px; }
+.upload-drop-sm{ padding:14px 8px; font-size:12.5px; }
+.upload-preview-sm{
+  margin-top:0; width:100%; aspect-ratio:1.4; display:flex; align-items:center; justify-content:center;
+  background:var(--forest-tint);
+}
+.upload-preview-sm img{ max-width:100%; max-height:100%; object-fit:contain; }
+.upload-preview-sm .upload-preview-empty{ padding:8px; font-size:11.5px; }
+.field-grid-3{ grid-template-columns:1fr 1fr 1fr; gap:10px; }
+
 .toolbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; margin-bottom:14px; }
 .toolbar .search-row{ box-shadow:none; }
 .toolbar .search-row input{ padding:10px 14px; font-size:13.5px; }
@@ -423,6 +452,9 @@ table.data-table tr:hover td{ background:var(--forest-tint); }
   .admin-nav button{ white-space:nowrap; }
   .admin-main{ padding:22px 18px 50px; }
   .search-row{ flex-direction:column; }
+  .settings-row{ grid-template-columns:1fr; }
+  .asset-row{ grid-template-columns:1fr; }
+  .field-grid-3{ grid-template-columns:1fr 1fr; }
 }
 @media (max-width: 480px){
   .container{ padding:0 16px; }
