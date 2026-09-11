@@ -81,14 +81,20 @@
           </div>
         </div>
 
-        <div class="panel">
-          <h2>Blangko / Latar Belakang Sertifikat</h2>
-          <p class="panel-desc">Unggah desain blangko kosong (PNG/JPG, orientasi landscape) yang akan otomatis diisi nama peserta.</p>
-          <div class="upload-drop" id="blangkoDrop">
-            📤 Klik untuk memilih gambar blangko (PNG/JPG)
+        <div class="settings-row">
+          <div class="panel">
+            <h2>Blangko / Latar Belakang Sertifikat</h2>
+            <p class="panel-desc">Unggah desain blangko kosong (PNG/JPG, orientasi landscape) yang akan otomatis diisi nama peserta.</p>
+            <div class="upload-drop" id="blangkoDrop">
+              📤 Klik untuk memilih gambar blangko (PNG/JPG)
+            </div>
+            <input type="file" id="blangkoFile" accept="image/png,image/jpeg" hidden>
           </div>
-          <input type="file" id="blangkoFile" accept="image/png,image/jpeg" hidden>
-          <div class="upload-preview" id="blangkoPreview"></div>
+          <div class="panel">
+            <h2>Pratinjau Blangko</h2>
+            <p class="panel-desc">Tampilan blangko yang sedang aktif digunakan.</p>
+            <div class="upload-preview upload-preview-lg" id="blangkoPreview"><span class="upload-preview-empty">Belum diunggah</span></div>
+          </div>
         </div>
 
         <div class="panel">
@@ -104,44 +110,107 @@
           </div>
         </div>
 
+        <div class="settings-row">
+          <div class="panel">
+            <h2>Warna &amp; Jenis Font</h2>
+            <p class="panel-desc">Sesuaikan tampilan teks Nama Peserta dan Kode Sertifikat agar cocok dengan gaya blangko Anda.</p>
+            <div class="field-grid">
+              <div class="field"><label for="namaFontFamily">Nama — Jenis Font</label>
+                <select id="namaFontFamily">
+                  <option value="Archivo">Archivo (tegas)</option>
+                  <option value="Inter">Inter (modern)</option>
+                  <option value="Playfair Display">Playfair Display (elegan/serif)</option>
+                  <option value="Montserrat">Montserrat</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Arial">Arial</option>
+                </select>
+              </div>
+              <div class="field"><label for="namaFontSize">Nama — Ukuran Font (px)</label><input type="number" id="namaFontSize" min="20" max="200" value="96"></div>
+              <div class="field"><label for="namaColor">Nama — Warna Font</label><input type="color" id="namaColor" value="#0B3D91"></div>
+
+              <div class="field"><label for="kodeFontFamily">Kode Sertifikat — Jenis Font</label>
+                <select id="kodeFontFamily">
+                  <option value="Archivo">Archivo</option>
+                  <option value="Inter">Inter (modern)</option>
+                  <option value="Playfair Display">Playfair Display</option>
+                  <option value="Montserrat">Montserrat</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Arial">Arial</option>
+                </select>
+              </div>
+              <div class="field"><label for="kodeFontSize">Kode Sertifikat — Ukuran Font (px)</label><input type="number" id="kodeFontSize" min="14" max="100" value="34"></div>
+              <div class="field"><label for="kodeColor">Kode Sertifikat — Warna Font</label><input type="color" id="kodeColor" value="#0B3D91"></div>
+            </div>
+
+            <div class="result-actions" style="margin-top:16px;">
+              <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi &amp; Font</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Pratinjau Posisi &amp; Font</h2>
+            <p class="panel-desc">Klik tombol "Pratinjau Posisi &amp; Font" di sebelah kiri untuk melihat hasilnya di sini.</p>
+            <div class="upload-preview upload-preview-lg" id="previewWrap">
+              <canvas id="previewCanvas" style="width:100%;height:auto;display:block;"></canvas>
+            </div>
+          </div>
+        </div>
+
         <div class="panel">
-          <h2>Warna &amp; Jenis Font</h2>
-          <p class="panel-desc">Sesuaikan tampilan teks Nama Peserta dan Kode Sertifikat agar cocok dengan gaya blangko Anda.</p>
-          <div class="field-grid">
-            <div class="field"><label for="namaFontFamily">Nama — Jenis Font</label>
-              <select id="namaFontFamily">
-                <option value="Archivo">Archivo (tegas)</option>
-                <option value="Inter">Inter (modern)</option>
-                <option value="Playfair Display">Playfair Display (elegan/serif)</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Arial">Arial</option>
-              </select>
-            </div>
-            <div class="field"><label for="namaFontSize">Nama — Ukuran Font (px)</label><input type="number" id="namaFontSize" min="20" max="200" value="96"></div>
-            <div class="field"><label for="namaColor">Nama — Warna Font</label><input type="color" id="namaColor" value="#14532D"></div>
+          <h2>Logo Web, TTD &amp; Stempel</h2>
+          <p class="panel-desc">Aset opsional yang ditempel di atas blangko (dan logo web juga tampil di header situs). Format PNG/JPG — latar belakang putih pada TTD &amp; stempel otomatis dihapus (dibuat transparan) saat diunggah. Atur posisi &amp; ukuran masing-masing dalam persen (0–100).</p>
 
-            <div class="field"><label for="kodeFontFamily">Kode Sertifikat — Jenis Font</label>
-              <select id="kodeFontFamily">
-                <option value="Archivo">Archivo</option>
-                <option value="Inter">Inter (modern)</option>
-                <option value="Playfair Display">Playfair Display</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Georgia">Georgia</option>
-                <option value="Times New Roman">Times New Roman</option>
-                <option value="Arial">Arial</option>
-              </select>
+          <div class="asset-row">
+            <div class="asset-row-upload">
+              <div class="upload-drop upload-drop-sm" id="logoDrop">📤 Logo Web</div>
+              <input type="file" id="logoFile" accept="image/png,image/jpeg" hidden>
+              <div class="upload-preview upload-preview-sm" id="logoPreview"><span class="upload-preview-empty">Belum diunggah</span></div>
             </div>
-            <div class="field"><label for="kodeFontSize">Kode Sertifikat — Ukuran Font (px)</label><input type="number" id="kodeFontSize" min="14" max="100" value="34"></div>
-            <div class="field"><label for="kodeColor">Kode Sertifikat — Warna Font</label><input type="color" id="kodeColor" value="#14532D"></div>
+            <div class="field-grid field-grid-3">
+              <div class="field"><label for="posLogoX">Posisi X (%)</label><input type="number" id="posLogoX" min="0" max="100" value="9"></div>
+              <div class="field"><label for="posLogoY">Posisi Y (%)</label><input type="number" id="posLogoY" min="0" max="100" value="9"></div>
+              <div class="field"><label for="posLogoSize">Ukuran (%)</label><input type="number" id="posLogoSize" min="1" max="60" value="9"></div>
+            </div>
           </div>
 
-          <div class="result-actions" style="margin-top:16px;">
-            <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi &amp; Font</button>
+          <div class="asset-row">
+            <div class="asset-row-upload">
+              <div class="upload-drop upload-drop-sm" id="ttdKkksDrop">📤 TTD Ketua KKKS</div>
+              <input type="file" id="ttdKkksFile" accept="image/png,image/jpeg" hidden>
+              <div class="upload-preview upload-preview-sm" id="ttdKkksPreview"><span class="upload-preview-empty">Belum diunggah</span></div>
+            </div>
+            <div class="field-grid field-grid-3">
+              <div class="field"><label for="posTtdKkksX">Posisi X (%)</label><input type="number" id="posTtdKkksX" min="0" max="100" value="30"></div>
+              <div class="field"><label for="posTtdKkksY">Posisi Y (%)</label><input type="number" id="posTtdKkksY" min="0" max="100" value="87"></div>
+              <div class="field"><label for="posTtdKkksSize">Ukuran (%)</label><input type="number" id="posTtdKkksSize" min="1" max="60" value="12"></div>
+            </div>
           </div>
-          <div class="upload-preview" id="previewWrap" style="display:none;margin-top:16px;">
-            <canvas id="previewCanvas" style="width:100%;height:auto;display:block;"></canvas>
+
+          <div class="asset-row">
+            <div class="asset-row-upload">
+              <div class="upload-drop upload-drop-sm" id="stempelDrop">📤 Stempel</div>
+              <input type="file" id="stempelFile" accept="image/png,image/jpeg" hidden>
+              <div class="upload-preview upload-preview-sm" id="stempelPreview"><span class="upload-preview-empty">Belum diunggah</span></div>
+            </div>
+            <div class="field-grid field-grid-3">
+              <div class="field"><label for="posStempelX">Posisi X (%)</label><input type="number" id="posStempelX" min="0" max="100" value="50"></div>
+              <div class="field"><label for="posStempelY">Posisi Y (%)</label><input type="number" id="posStempelY" min="0" max="100" value="84"></div>
+              <div class="field"><label for="posStempelSize">Ukuran (%)</label><input type="number" id="posStempelSize" min="1" max="60" value="11"></div>
+            </div>
+          </div>
+
+          <div class="asset-row">
+            <div class="asset-row-upload">
+              <div class="upload-drop upload-drop-sm" id="ttdKkgoDrop">📤 TTD Ketua KKGO</div>
+              <input type="file" id="ttdKkgoFile" accept="image/png,image/jpeg" hidden>
+              <div class="upload-preview upload-preview-sm" id="ttdKkgoPreview"><span class="upload-preview-empty">Belum diunggah</span></div>
+            </div>
+            <div class="field-grid field-grid-3">
+              <div class="field"><label for="posTtdKkgoX">Posisi X (%)</label><input type="number" id="posTtdKkgoX" min="0" max="100" value="70"></div>
+              <div class="field"><label for="posTtdKkgoY">Posisi Y (%)</label><input type="number" id="posTtdKkgoY" min="0" max="100" value="87"></div>
+              <div class="field"><label for="posTtdKkgoSize">Ukuran (%)</label><input type="number" id="posTtdKkgoSize" min="1" max="60" value="12"></div>
+            </div>
           </div>
         </div>
 
