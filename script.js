@@ -35,10 +35,10 @@ const CONFIG = {
     // Aset gambar tambahan yang bisa ditempel di atas blangko, posisinya bisa
     // diatur admin lewat panel "Logo, TTD & Stempel". sizePct = lebar aset
     // relatif terhadap lebar kanvas sertifikat; tinggi menyesuaikan rasio asli gambar.
-    logo:     { xPct: 0.085, yPct: 0.085, sizePct: 0.09 },
-    ttdKkks:  { xPct: 0.30,  yPct: 0.865, sizePct: 0.12 },
-    stempel:  { xPct: 0.50,  yPct: 0.835, sizePct: 0.11 },
-    ttdKkgo:  { xPct: 0.70,  yPct: 0.865, sizePct: 0.12 }
+    logo:     { xPct: 0.085, yPct: 0.085, sizePct: 0.09, enabled: true },
+    ttdKkks:  { xPct: 0.30,  yPct: 0.865, sizePct: 0.12, enabled: true },
+    stempel:  { xPct: 0.50,  yPct: 0.835, sizePct: 0.11, enabled: true },
+    ttdKkgo:  { xPct: 0.70,  yPct: 0.865, sizePct: 0.12, enabled: true }
   },
 
   // Kunci setiap aset overlay gambar (di luar blangko itu sendiri & QR yang
@@ -255,11 +255,12 @@ const CertRenderer = {
     drawText('nama', data.nama);
 
     // Aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO -> masing-masing
-    // opsional, hanya digambar kalau admin sudah mengunggahnya & posisinya diatur.
+    // opsional, hanya digambar kalau admin sudah mengunggahnya, posisinya diatur,
+    // dan tombol aktif/nonaktifnya sedang dinyalakan (cfg.enabled !== false).
     for (const key of CONFIG.OVERLAY_ASSET_KEYS) {
       const cfg = L[key];
       const url = assets[key];
-      if (!cfg || !url) continue;
+      if (!cfg || !url || cfg.enabled === false) continue;
       try {
         const img = await this.loadAssetImage(url);
         if (!img) continue;
