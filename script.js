@@ -20,9 +20,10 @@ const CONFIG = {
   EVENT_NAME: 'Pelatihan Instruktur Senam Bogor Bugar Tahun 2026',
   EVENT_LOCATION: 'Kecamatan Cigombong',
 
-  // Ukuran kanvas sertifikat -> rasio A4 Landscape (297mm x 210mm), kualitas cetak 300dpi
-  CERT_WIDTH: 3508,
-  CERT_HEIGHT: 2480,
+  // Ukuran kanvas sertifikat -> rasio A4 Landscape (297mm x 210mm).
+  // ~240dpi: tajam untuk cetak, tapi jauh lebih ringan di memori HP dibanding 300dpi penuh.
+  CERT_WIDTH: 2808,
+  CERT_HEIGHT: 1985,
 
   // Posisi elemen di atas blangko, dalam PERSEN (0-1) dari lebar/tinggi kanvas.
   // Blangko sudah lengkap (hanya Nama & Kode yang dicetak dinamis oleh sistem).
@@ -79,15 +80,31 @@ const CertRenderer = {
 
   async loadBlangko(url) {
     if (this._blangkoCache && this._blangkoUrl === url) return this._blangkoCache;
-    const img = await new Promise((resolve, reject) => {
+
+    const tryLoad = (withCors) => new Promise((resolve, reject) => {
       const im = new Image();
-      im.crossOrigin = 'anonymous';
+      if (withCors) im.crossOrigin = 'anonymous';
       im.onload = () => resolve(im);
       im.onerror = reject;
       im.src = url;
     });
+
+    let img;
+    let tainted = false;
+    try {
+      img = await tryLoad(true);
+    } catch (e) {
+      // Sebagian jaringan seluler/proxy data-saver memblokir permintaan gambar
+      // bermode CORS. Coba lagi tanpa CORS supaya sertifikat tetap TERLIHAT,
+      // meski akibatnya unduhan PDF untuk kasus ini mungkin gagal (lihat catch
+      // di canvasToPdfBlob).
+      console.warn('Gagal memuat blangko dengan mode CORS, mencoba ulang tanpa CORS...', e);
+      img = await tryLoad(false);
+      tainted = true;
+    }
     this._blangkoCache = img;
     this._blangkoUrl = url;
+    this._blangkoTainted = tainted;
     return img;
   },
 
@@ -135,10 +152,20 @@ const CertRenderer = {
         const img = await this.loadBlangko(blangkoUrl);
         ctx.drawImage(img, 0, 0, W, H);
       } catch (e) {
-        // blangko gagal dimuat -> tampilkan placeholder sederhana
-        ctx.strokeStyle = '#14532D';
+        // blangko benar-benar gagal dimuat (bukan cuma taint CORS) -> tampilkan pesan jelas
+        ctx.fillStyle = '#F5F6F0';
+        ctx.fillRect(0, 0, W, H);
+        ctx.strokeStyle = '#D9481F';
         ctx.lineWidth = 10;
         ctx.strokeRect(30, 30, W - 60, H - 60);
+        ctx.fillStyle = '#B23A17';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.font = '600 42px Inter';
+        ctx.fillText('Gagal memuat gambar blangko sertifikat.', W / 2, H / 2 - 30);
+        ctx.font = '400 32px Inter';
+        ctx.fillText('Coba muat ulang halaman ini.', W / 2, H / 2 + 30);
+        console.error('Gagal memuat blangko:', e);
       }
     }
 
@@ -193,8 +220,13 @@ const CertRenderer = {
   async canvasToPdfBlob(canvas) {
     // eslint-disable-next-line no-undef
     const { jsPDF } = window.jspdf;
+    let imgData;
+    try {
+      imgData = canvas.toDataURL('image/jpeg', 0.95);
+    } catch (e) {
+      throw new Error('Gagal membuat PDF karena gambar blangko diblokir keamanan browser (CORS). Coba muat ulang halaman lalu unduh lagi.');
+    }
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
     pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
     return pdf.output('blob');
   },
@@ -210,6 +242,19 @@ const CertRenderer = {
     URL.revokeObjectURL(url);
   }
 };
+
+/* ---------------------------------------------------------------------
+ * TOAST NOTIFIKASI KECIL (dipakai index.html & admin.html)
+ * ------------------------------------------------------------------- */
+let _toastTimer;
+function showToast(message, type = '') {
+  const el = document.getElementById('toast');
+  if (!el) { console.warn('[toast]', message); return; }
+  el.textContent = message;
+  el.className = 'toast show' + (type ? ' ' + type : '');
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 4200);
+}
 
 /* ---------------------------------------------------------------------
  * 4. LOGIKA HALAMAN PUBLIK (index.html)
@@ -316,6 +361,8 @@ const PublicPage = {
       const canvas = document.getElementById('certCanvas');
       const blob = await CertRenderer.canvasToPdfBlob(canvas);
       CertRenderer.downloadBlob(blob, `Sertifikat-${this.currentPeserta.kode}.pdf`);
+    } catch (e) {
+      showToast(e.message || 'Gagal membuat file PDF. Coba muat ulang halaman.', 'error');
     } finally {
       btn.disabled = false;
       btn.textContent = original;
