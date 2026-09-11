@@ -162,9 +162,15 @@ const Admin = {
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
       const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
       const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
+      const enEl = document.getElementById('enable' + capitalize(key));
       if (xEl) xEl.value = Math.round(L[key].xPct * 100);
       if (yEl) yEl.value = Math.round(L[key].yPct * 100);
       if (sEl) sEl.value = Math.round(L[key].sizePct * 100);
+      // Aset lama (tersimpan sebelum fitur ini ada) dianggap aktif secara default.
+      if (enEl) {
+        enEl.checked = L[key].enabled !== false;
+        this.toggleAssetFieldsState(key);
+      }
     });
 
     // Tampilkan pratinjau posisi & font begitu blangko sudah ada, tanpa perlu diklik.
@@ -237,9 +243,32 @@ const Admin = {
       el.addEventListener('input', () => this.scheduleAutosave());
     });
 
+    // ---- Tombol aktif/nonaktif per aset (Logo Web, TTD, Stempel) ----
+    // Saat dimatikan, aset tetap tersimpan di server tapi tidak digambar di
+    // atas sertifikat. Field posisi/ukuran ikut dinonaktifkan secara visual.
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      const enEl = document.getElementById('enable' + capitalize(key));
+      if (!enEl) return;
+      enEl.addEventListener('change', () => {
+        this.toggleAssetFieldsState(key);
+        scheduleLivePreview();
+        this.scheduleAutosave();
+      });
+    });
+
     // Tombol "Pratinjau" tetap ada sebagai penyegar manual bila diperlukan.
     const previewBtn = document.getElementById('previewPosisiBtn');
     if (previewBtn) previewBtn.addEventListener('click', () => this.previewPosisi());
+  },
+
+  /** Nyala/matikan visual field posisi & ukuran sesuai status toggle aset ini. */
+  toggleAssetFieldsState(key) {
+    const enEl = document.getElementById('enable' + capitalize(key));
+    const fieldsEl = document.getElementById('fields' + capitalize(key));
+    if (!enEl || !fieldsEl) return;
+    const on = enEl.checked;
+    fieldsEl.classList.toggle('is-disabled', !on);
+    fieldsEl.querySelectorAll('input').forEach((inp) => { inp.disabled = !on; });
   },
 
   /* ---------------- SIMPAN PENGATURAN (dipakai submit manual & autosave) ---------------- */
@@ -261,11 +290,13 @@ const Admin = {
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
       const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
       const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
+      const enEl = document.getElementById('enable' + capitalize(key));
       if (!xEl) return;
       layout[key] = Object.assign({}, CONFIG.LAYOUT[key], {
         xPct: (parseFloat(xEl.value) || 0) / 100,
         yPct: (parseFloat(yEl.value) || 0) / 100,
-        sizePct: (parseFloat(sEl.value) || 0) / 100
+        sizePct: (parseFloat(sEl.value) || 0) / 100,
+        enabled: enEl ? enEl.checked : true
       });
     });
     return layout;
@@ -376,11 +407,13 @@ const Admin = {
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
       if (!xEl) return;
+      const enEl = document.getElementById('enable' + capitalize(key));
       layout[key] = {
         ...CONFIG.LAYOUT[key],
         xPct: num('pos' + capitalize(key) + 'X') / 100,
         yPct: num('pos' + capitalize(key) + 'Y') / 100,
-        sizePct: num('pos' + capitalize(key) + 'Size') / 100
+        sizePct: num('pos' + capitalize(key) + 'Size') / 100,
+        enabled: enEl ? enEl.checked : true
       };
     });
     const canvas = document.getElementById('previewCanvas');
