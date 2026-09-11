@@ -36,14 +36,11 @@ const Admin = {
     this.bindBulkUpload();
     this.bindTableToolbar();
     this.bindModal();
+    Review.bind();
   },
 
   toast(message, type = '') {
-    const el = document.getElementById('toast');
-    el.textContent = message;
-    el.className = 'toast show' + (type ? ' ' + type : '');
-    clearTimeout(this._toastTimer);
-    this._toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+    showToast(message, type);
   },
 
   /* ---------------- LOGIN ---------------- */
@@ -123,6 +120,7 @@ const Admin = {
       nama: Object.assign({}, CONFIG.LAYOUT.nama, (res.data.layout && res.data.layout.nama) || {}),
       qr: Object.assign({}, CONFIG.LAYOUT.qr, (res.data.layout && res.data.layout.qr) || {})
     };
+    Object.assign(CONFIG.LAYOUT, L); // supaya Download/Review pakai pengaturan tersimpan, bukan default
     document.getElementById('posNamaX').value = Math.round(L.nama.xPct * 100);
     document.getElementById('posNamaY').value = Math.round(L.nama.yPct * 100);
     document.getElementById('posKodeX').value = Math.round(L.kode.xPct * 100);
@@ -189,7 +187,6 @@ const Admin = {
     });
 
     document.getElementById('previewPosisiBtn').addEventListener('click', () => this.previewPosisi());
-    document.getElementById('downloadTemplateBtn').addEventListener('click', () => this.downloadTemplateCsv());
   },
 
   async handleBlangkoFile(file) {
@@ -244,13 +241,6 @@ const Admin = {
     }, this.state.settings.blangkoUrl, layout);
   },
 
-  downloadTemplateCsv() {
-    const header = 'No,Nama,Nama Sekolah\n';
-    const sample = '1,Contoh Nama Peserta,SD Negeri Cigombong 01\n2,Contoh Nama Peserta Dua,SD Negeri Cigombong 02\n';
-    const blob = new Blob([header + sample], { type: 'text/csv;charset=utf-8' });
-    CertRenderer.downloadBlob(blob, 'Template-Data-Peserta.csv');
-  },
-
   /* ---------------- INPUT MANUAL ---------------- */
   bindManualForm() {
     const form = document.getElementById('manualForm');
@@ -287,6 +277,29 @@ const Admin = {
     if (!input) return;
     document.getElementById('bulkDrop').addEventListener('click', () => input.click());
     input.addEventListener('change', () => this.handleBulkFile(input.files[0]));
+    document.getElementById('downloadTemplateBtn').addEventListener('click', () => this.downloadTemplateXlsx());
+  },
+
+  downloadTemplateXlsx() {
+    // Dibuat sebagai file .xlsx sungguhan (bukan teks CSV) supaya kolom No/Nama/Nama
+    // Sekolah PASTI terpisah rapi saat dibuka di Excel, tidak tergantung pengaturan
+    // pemisah desimal/daftar (locale) di Excel masing-masing perangkat.
+    // eslint-disable-next-line no-undef
+    const wsData = [
+      ['No', 'Nama', 'Nama Sekolah'],
+      [1, 'Contoh Nama Peserta', 'SD Negeri Cigombong 01'],
+      [2, 'Contoh Nama Peserta Dua', 'SD Negeri Cigombong 02'],
+      [3, 'Contoh Nama Peserta Tiga', 'SD Negeri Cigombong 03']
+    ];
+    // eslint-disable-next-line no-undef
+    const ws = XLSX.utils.aoa_to_sheet(wsData);
+    ws['!cols'] = [{ wch: 6 }, { wch: 32 }, { wch: 32 }];
+    // eslint-disable-next-line no-undef
+    const wb = XLSX.utils.book_new();
+    // eslint-disable-next-line no-undef
+    XLSX.utils.book_append_sheet(wb, ws, 'Data Peserta');
+    // eslint-disable-next-line no-undef
+    XLSX.writeFile(wb, 'Template-Data-Peserta.xlsx');
   },
 
   async handleBulkFile(file) {
@@ -377,6 +390,7 @@ const Admin = {
       if (this.state.page < maxPage) { this.state.page++; this.loadPeserta(); }
     });
     document.getElementById('downloadAllBtn').addEventListener('click', () => this.downloadAllZip());
+    document.getElementById('reviewAllBtn').addEventListener('click', () => Review.openAt(null));
   },
 
   async loadPeserta() {
@@ -410,6 +424,7 @@ const Admin = {
           <td><span class="badge">${r.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif'}</span></td>
           <td>
             <div class="row-actions">
+              <button class="icon-btn" data-act="view" data-kode="${escapeHtml(r.kode)}">👁 Lihat</button>
               <button class="icon-btn" data-act="edit" data-kode="${escapeHtml(r.kode)}">Edit</button>
               <button class="icon-btn" data-act="pdf" data-kode="${escapeHtml(r.kode)}">Unduh</button>
               <button class="icon-btn danger" data-act="delete" data-kode="${escapeHtml(r.kode)}">Hapus</button>
@@ -427,15 +442,20 @@ const Admin = {
         if (btn.dataset.act === 'edit') this.openEditModal(row);
         if (btn.dataset.act === 'delete') this.confirmDelete(row);
         if (btn.dataset.act === 'pdf') this.downloadOne(row);
+        if (btn.dataset.act === 'view') Review.openAt(kode);
       });
     });
   },
 
   async downloadOne(row) {
-    const canvas = document.createElement('canvas');
-    await CertRenderer.draw(canvas, row, this.state.settings && this.state.settings.blangkoUrl, CONFIG.LAYOUT);
-    const blob = await CertRenderer.canvasToPdfBlob(canvas);
-    CertRenderer.downloadBlob(blob, `Sertifikat-${row.kode}.pdf`);
+    try {
+      const canvas = document.createElement('canvas');
+      await CertRenderer.draw(canvas, row, this.state.settings && this.state.settings.blangkoUrl, CONFIG.LAYOUT);
+      const blob = await CertRenderer.canvasToPdfBlob(canvas);
+      CertRenderer.downloadBlob(blob, `Sertifikat-${row.kode}.pdf`);
+    } catch (e) {
+      this.toast(e.message || 'Gagal membuat PDF sertifikat ini.', 'error');
+    }
   },
 
   async downloadAllZip() {
@@ -525,6 +545,82 @@ const Admin = {
         this.toast(res.message || 'Gagal menghapus peserta.', 'error');
       }
     });
+  }
+};
+
+/* ---------------------------------------------------------------------
+ * REVIEW SERTIFIKAT (satu peserta / semua peserta, gaya "Halaman X / Y")
+ * ------------------------------------------------------------------- */
+const Review = {
+  list: [],
+  index: 0,
+  zoom: 100,
+
+  bind() {
+    const closeBtn = document.getElementById('reviewCloseBtn');
+    if (!closeBtn) return; // bukan admin.html
+    closeBtn.addEventListener('click', () => this.close());
+    document.getElementById('reviewModalOverlay').addEventListener('click', (e) => {
+      if (e.target.id === 'reviewModalOverlay') this.close();
+    });
+    document.getElementById('reviewPrevBtn').addEventListener('click', () => this.prev());
+    document.getElementById('reviewNextBtn').addEventListener('click', () => this.next());
+    document.getElementById('reviewZoomInBtn').addEventListener('click', () => this.setZoom(this.zoom + 10));
+    document.getElementById('reviewZoomOutBtn').addEventListener('click', () => this.setZoom(this.zoom - 10));
+    document.getElementById('reviewDownloadBtn').addEventListener('click', () => this.downloadCurrent());
+  },
+
+  /** kode = null -> buka dari peserta pertama ("Review Semua Peserta"); kode = "SBB-..." -> langsung loncat ke peserta itu */
+  async openAt(kode) {
+    Admin.toast('Menyiapkan data untuk direview...', '');
+    const res = await API.get('listPeserta', { page: 1, pageSize: 10000, q: '' });
+    if (!res.success || !res.data.rows.length) {
+      Admin.toast('Belum ada data peserta untuk direview.', 'error');
+      return;
+    }
+    this.list = res.data.rows;
+    this.index = kode ? Math.max(0, this.list.findIndex((r) => r.kode === kode)) : 0;
+    this.zoom = 100;
+    document.getElementById('reviewModalOverlay').classList.add('show');
+    await this.render();
+  },
+
+  close() {
+    document.getElementById('reviewModalOverlay').classList.remove('show');
+  },
+
+  prev() { if (this.index > 0) { this.index--; this.render(); } },
+  next() { if (this.index < this.list.length - 1) { this.index++; this.render(); } },
+  setZoom(pct) { this.zoom = Math.max(40, Math.min(300, pct)); this.render(); },
+
+  async render() {
+    const row = this.list[this.index];
+    document.getElementById('reviewPageInfo').textContent = `Halaman ${this.index + 1} / ${this.list.length}`;
+    document.getElementById('reviewMetaLabel').textContent = `${row.kode} — ${row.nama}`;
+    document.getElementById('reviewZoomLabel').textContent = this.zoom + '%';
+    document.getElementById('reviewPrevBtn').disabled = this.index === 0;
+    document.getElementById('reviewNextBtn').disabled = this.index === this.list.length - 1;
+
+    const canvas = document.getElementById('reviewCanvas');
+    canvas.style.width = Math.round(640 * (this.zoom / 100)) + 'px';
+    await CertRenderer.draw(canvas, row, Admin.state.settings && Admin.state.settings.blangkoUrl, CONFIG.LAYOUT);
+  },
+
+  async downloadCurrent() {
+    const row = this.list[this.index];
+    const btn = document.getElementById('reviewDownloadBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Menyiapkan...';
+    try {
+      const canvas = document.getElementById('reviewCanvas');
+      const blob = await CertRenderer.canvasToPdfBlob(canvas);
+      CertRenderer.downloadBlob(blob, `Sertifikat-${row.kode}.pdf`);
+    } catch (e) {
+      Admin.toast(e.message || 'Gagal membuat PDF.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Download PDF Peserta Ini';
+    }
   }
 };
 
