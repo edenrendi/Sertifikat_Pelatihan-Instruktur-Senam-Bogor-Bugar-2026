@@ -139,7 +139,6 @@
 
           <div class="result-actions" style="margin-top:16px;">
             <button type="button" class="btn btn-ghost" id="previewPosisiBtn">Pratinjau Posisi &amp; Font</button>
-            <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel/CSV</button>
           </div>
           <div class="upload-preview" id="previewWrap" style="display:none;margin-top:16px;">
             <canvas id="previewCanvas" style="width:100%;height:auto;display:block;"></canvas>
@@ -160,8 +159,14 @@
       </div>
 
       <div class="panel">
+        <h2>Download Template Excel</h2>
+        <p class="panel-desc">Unduh dulu template ini, isi datanya (kolom No, Nama, Nama Sekolah — data peserta mengurut ke bawah, satu baris per peserta), baru unggah lagi lewat "Unggah Massal" di bawah.</p>
+        <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel (.xlsx)</button>
+      </div>
+
+      <div class="panel">
         <h2>Unggah Massal (Excel/CSV)</h2>
-        <p class="panel-desc">Gunakan format Template Excel/CSV pada menu Pengaturan. Kode sertifikat dibuat otomatis untuk setiap baris.</p>
+        <p class="panel-desc">Gunakan format Template Excel di atas. Kode sertifikat dan tanggal terbit dibuat otomatis untuk setiap baris.</p>
         <div class="upload-drop" id="bulkDrop">📤 Klik untuk memilih file .xlsx atau .csv</div>
         <input type="file" id="bulkFile" accept=".xlsx,.xls,.csv" hidden>
 
@@ -210,6 +215,7 @@
             <input type="text" id="tableSearch" placeholder="Cari nama atau kode...">
           </div>
           <div>
+            <button class="btn btn-ghost btn-sm" id="reviewAllBtn">👁 Review Semua Peserta</button>
             <button class="btn btn-coral btn-sm" id="downloadAllBtn">Download Semua PDF (ZIP)</button>
           </div>
         </div>
@@ -263,6 +269,35 @@
         <button type="submit" class="btn btn-primary">Simpan Perubahan</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- ============================= MODAL REVIEW SERTIFIKAT ============================= -->
+<div class="modal-overlay" id="reviewModalOverlay">
+  <div class="modal review-modal">
+    <div class="review-modal-header">
+      <h3>Review Sertifikat Semua Peserta</h3>
+      <button class="icon-btn" id="reviewCloseBtn">✕ Tutup</button>
+    </div>
+    <div class="review-toolbar">
+      <div class="review-nav">
+        <button class="btn btn-ghost btn-sm" id="reviewPrevBtn">← Sebelumnya</button>
+        <button class="btn btn-ghost btn-sm" id="reviewNextBtn">Berikutnya →</button>
+        <span class="review-page-info" id="reviewPageInfo">Halaman 1 / 1</span>
+      </div>
+      <div class="review-zoom">
+        <button class="icon-btn" id="reviewZoomOutBtn">−</button>
+        <span id="reviewZoomLabel">100%</span>
+        <button class="icon-btn" id="reviewZoomInBtn">+</button>
+      </div>
+    </div>
+    <div class="review-canvas-area" id="reviewCanvasArea">
+      <canvas id="reviewCanvas"></canvas>
+    </div>
+    <div class="review-modal-footer">
+      <span id="reviewMetaLabel"></span>
+      <button class="btn btn-coral btn-sm" id="reviewDownloadBtn">Download PDF Peserta Ini</button>
+    </div>
   </div>
 </div>
 
