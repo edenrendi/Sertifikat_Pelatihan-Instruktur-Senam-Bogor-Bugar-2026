@@ -373,6 +373,40 @@ table.data-table tr:hover td{ background:var(--forest-tint); }
 .modal .panel-desc{ margin-bottom:18px; }
 .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
 
+/* ---------- Modal Review Sertifikat ---------- */
+.review-modal{ max-width:800px; padding:0; overflow:hidden; }
+.review-modal-header{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:20px 22px 16px; border-bottom:1px solid var(--line);
+}
+.review-modal-header h3{ margin:0; }
+.review-toolbar{
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  padding:14px 22px; background:var(--forest-tint); border-bottom:1px solid var(--line);
+}
+.review-nav{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.review-page-info{ font-size:13px; font-weight:600; color:var(--forest-dark); }
+.review-zoom{ display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--ink); }
+.review-zoom .icon-btn{ width:30px; height:30px; padding:0; display:flex; align-items:center; justify-content:center; font-size:15px; }
+.review-canvas-area{
+  background:#EDEEE7; padding:28px; max-height:60vh; overflow:auto;
+  display:flex; align-items:flex-start; justify-content:center;
+}
+.review-canvas-area canvas{
+  width:640px; max-width:none; height:auto; display:block;
+  box-shadow:0 12px 30px -14px rgba(13,59,33,.4); border-radius:6px; background:#fff;
+}
+.review-modal-footer{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding:14px 22px; border-top:1px solid var(--line);
+}
+.review-modal-footer #reviewMetaLabel{ font-size:13px; color:var(--ink-soft); font-weight:600; }
+@media (max-width:640px){
+  .review-canvas-area canvas{ width:100%; }
+  .review-toolbar{ flex-direction:column; align-items:stretch; }
+  .review-nav, .review-zoom{ justify-content:space-between; }
+}
+
 .progress-bar{ height:8px; background:var(--forest-tint); border-radius:999px; overflow:hidden; margin-top:12px; }
 .progress-bar > div{ height:100%; background:var(--forest); width:0%; transition:width .2s ease; }
 
