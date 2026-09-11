@@ -24,6 +24,9 @@ const Admin = {
   async init() {
     if (!document.getElementById('adminShell') && !document.getElementById('loginShell')) return;
 
+    // Ambil logo web lebih dulu supaya tampil juga di layar login (bukan cuma dashboard).
+    API.get('getSettings').then((res) => { if (res.success) applyBrandLogo(res.data.logoUrl); });
+
     if (this.getToken()) {
       this.showDashboard();
     } else {
@@ -115,11 +118,12 @@ const Admin = {
     if (res.data.blangkoUrl) {
       document.getElementById('blangkoPreview').innerHTML = `<img src="${res.data.blangkoUrl}" alt="Blangko sertifikat">`;
     }
-    const L = {
-      kode: Object.assign({}, CONFIG.LAYOUT.kode, (res.data.layout && res.data.layout.kode) || {}),
-      nama: Object.assign({}, CONFIG.LAYOUT.nama, (res.data.layout && res.data.layout.nama) || {}),
-      qr: Object.assign({}, CONFIG.LAYOUT.qr, (res.data.layout && res.data.layout.qr) || {})
-    };
+    applyBrandLogo(res.data.logoUrl);
+
+    const L = { kode: {}, nama: {}, qr: {} };
+    ['kode', 'nama', 'qr'].concat(CONFIG.OVERLAY_ASSET_KEYS).forEach((key) => {
+      L[key] = Object.assign({}, CONFIG.LAYOUT[key], (res.data.layout && res.data.layout[key]) || {});
+    });
     Object.assign(CONFIG.LAYOUT, L); // supaya Download/Review pakai pengaturan tersimpan, bukan default
     document.getElementById('posNamaX').value = Math.round(L.nama.xPct * 100);
     document.getElementById('posNamaY').value = Math.round(L.nama.yPct * 100);
@@ -134,6 +138,19 @@ const Admin = {
     document.getElementById('kodeFontFamily').value = L.kode.fontFamily;
     document.getElementById('kodeFontSize').value = L.kode.fontSize;
     document.getElementById('kodeColor').value = L.kode.color;
+
+    // Pratinjau & posisi untuk aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      const url = res.data[key + 'Url'];
+      const previewEl = document.getElementById(key + 'Preview');
+      if (previewEl) previewEl.innerHTML = url ? `<img src="${url}" alt="${key}">` : '<span class="upload-preview-empty">Belum diunggah</span>';
+      const xEl = document.getElementById('pos' + capitalize(key) + 'X');
+      const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
+      const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
+      if (xEl) xEl.value = Math.round(L[key].xPct * 100);
+      if (yEl) yEl.value = Math.round(L[key].yPct * 100);
+      if (sEl) sEl.value = Math.round(L[key].sizePct * 100);
+    });
   },
 
   bindSettingsForm() {
@@ -143,6 +160,16 @@ const Admin = {
       dropZone.addEventListener('click', () => fileInput.click());
       fileInput.addEventListener('change', () => this.handleBlangkoFile(fileInput.files[0]));
     }
+
+    // Dropzone untuk 4 aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO.
+    // Semua otomatis diproses agar latar putihnya jadi transparan sebelum diunggah.
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      const drop = document.getElementById(key + 'Drop');
+      const input = document.getElementById(key + 'File');
+      if (!drop || !input) return;
+      drop.addEventListener('click', () => input.click());
+      input.addEventListener('change', () => this.handleOverlayAssetFile(key, input.files[0]));
+    });
 
     const form = document.getElementById('settingsForm');
     if (!form) return;
@@ -164,6 +191,18 @@ const Admin = {
         }),
         qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 })
       };
+      // Posisi & ukuran untuk aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO
+      CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+        const xEl = document.getElementById('pos' + capitalize(key) + 'X');
+        const yEl = document.getElementById('pos' + capitalize(key) + 'Y');
+        const sEl = document.getElementById('pos' + capitalize(key) + 'Size');
+        if (!xEl) return;
+        layout[key] = Object.assign({}, CONFIG.LAYOUT[key], {
+          xPct: (parseFloat(xEl.value) || 0) / 100,
+          yPct: (parseFloat(yEl.value) || 0) / 100,
+          sizePct: (parseFloat(sEl.value) || 0) / 100
+        });
+      });
       try {
         const res = await API.post('updateSettings', {
           settings: {
@@ -233,12 +272,56 @@ const Admin = {
       },
       qr: { ...CONFIG.LAYOUT.qr, xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 }
     };
+    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+      const xEl = document.getElementById('pos' + capitalize(key) + 'X');
+      if (!xEl) return;
+      layout[key] = {
+        ...CONFIG.LAYOUT[key],
+        xPct: num('pos' + capitalize(key) + 'X') / 100,
+        yPct: num('pos' + capitalize(key) + 'Y') / 100,
+        sizePct: num('pos' + capitalize(key) + 'Size') / 100
+      };
+    });
     const canvas = document.getElementById('previewCanvas');
-    document.getElementById('previewWrap').style.display = 'block';
     await CertRenderer.draw(canvas, {
       kode: (this.state.settings.kodePrefix || 'SBB-2026-') + '0001',
       nama: 'Nama Peserta Contoh'
-    }, this.state.settings.blangkoUrl, layout);
+    }, assetsFromSettings(this.state.settings), layout);
+  },
+
+  /* ---------------- UPLOAD ASET OVERLAY (logo, TTD, stempel) ---------------- */
+  async handleOverlayAssetFile(kind, file) {
+    if (!file) return;
+    if (!/image\/(png|jpe?g)/.test(file.type)) {
+      this.toast('Format harus PNG atau JPG.', 'error');
+      return;
+    }
+    const previewEl = document.getElementById(kind + 'Preview');
+    const labels = { logo: 'Logo', ttdKkks: 'TTD Ketua KKKS', stempel: 'Stempel', ttdKkgo: 'TTD Ketua KKGO' };
+    previewEl.innerHTML = '<span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memproses latar...';
+    try {
+      // Latar putih (dari foto/scan TTD atau stempel di kertas putih) dihapus otomatis
+      // di browser sebelum diunggah, supaya aset bisa ditempel transparan di atas blangko.
+      const { mimeType, base64 } = await stripWhiteBackground(file);
+      const res = await API.post('uploadAsset', {
+        kind,
+        filename: file.name.replace(/\.[a-z0-9]+$/i, '') + '.png',
+        mimeType,
+        base64
+      });
+      if (res.success) {
+        previewEl.innerHTML = `<img src="${res.url}" alt="${labels[kind] || kind}">`;
+        CertRenderer._assetCache = {};
+        if (this.state.settings) this.state.settings[kind + 'Url'] = res.url;
+        this.toast(`${labels[kind] || 'Aset'} berhasil diunggah, latar putih dihapus otomatis.`, 'success');
+      } else {
+        previewEl.innerHTML = '<span class="upload-preview-empty">Belum diunggah</span>';
+        this.toast(res.message || 'Gagal mengunggah aset.', 'error');
+      }
+    } catch (e) {
+      previewEl.innerHTML = '<span class="upload-preview-empty">Belum diunggah</span>';
+      this.toast('Gagal memproses gambar. Coba file lain.', 'error');
+    }
   },
 
   /* ---------------- INPUT MANUAL ---------------- */
@@ -450,7 +533,7 @@ const Admin = {
   async downloadOne(row) {
     try {
       const canvas = document.createElement('canvas');
-      await CertRenderer.draw(canvas, row, this.state.settings && this.state.settings.blangkoUrl, CONFIG.LAYOUT);
+      await CertRenderer.draw(canvas, row, assetsFromSettings(this.state.settings), CONFIG.LAYOUT);
       const blob = await CertRenderer.canvasToPdfBlob(canvas);
       CertRenderer.downloadBlob(blob, `Sertifikat-${row.kode}.pdf`);
     } catch (e) {
@@ -472,7 +555,7 @@ const Admin = {
       for (let i = 0; i < all.length; i++) {
         const row = all[i];
         const canvas = document.createElement('canvas');
-        await CertRenderer.draw(canvas, row, this.state.settings && this.state.settings.blangkoUrl, CONFIG.LAYOUT);
+        await CertRenderer.draw(canvas, row, assetsFromSettings(this.state.settings), CONFIG.LAYOUT);
         const blob = await CertRenderer.canvasToPdfBlob(canvas);
         zip.file(`Sertifikat-${row.kode}-${row.nama.replace(/[^a-z0-9]+/gi, '_')}.pdf`, blob);
         bar.style.width = Math.round(((i + 1) / all.length) * 100) + '%';
@@ -603,7 +686,7 @@ const Review = {
 
     const canvas = document.getElementById('reviewCanvas');
     canvas.style.width = Math.round(640 * (this.zoom / 100)) + 'px';
-    await CertRenderer.draw(canvas, row, Admin.state.settings && Admin.state.settings.blangkoUrl, CONFIG.LAYOUT);
+    await CertRenderer.draw(canvas, row, assetsFromSettings(Admin.state.settings), CONFIG.LAYOUT);
   },
 
   async downloadCurrent() {
@@ -625,6 +708,7 @@ const Review = {
 };
 
 /* ---------------- util ---------------- */
+function capitalize(str) { return str.charAt(0).toUpperCase() + str.slice(1); }
 function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -635,6 +719,90 @@ function fileToBase64(file) {
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
+}
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+/**
+ * Menghapus latar belakang putih pada gambar TTD/stempel/logo secara otomatis
+ * di browser sebelum diunggah, lalu mengembalikan PNG (mimeType + base64).
+ * - Berlaku untuk JPG (yang memang tidak punya kanal transparansi) MAUPUN PNG
+ *   yang latarnya masih putih solid (mis. hasil scan/foto TTD di kertas putih).
+ * - Kalau file PNG yang diunggah SUDAH punya transparansi asli yang cukup luas,
+ *   file dibiarkan apa adanya supaya transparansi yang sudah sengaja dibuat
+ *   admin (mis. logo dengan lubang transparan) tidak ikut diutak-atik.
+ * - Memakai flood-fill dari TEPI gambar (bukan seluruh gambar) supaya area putih
+ *   yang TERTUTUP di tengah (mis. celah pada huruf "o", "a") tidak ikut hilang.
+ */
+async function stripWhiteBackground(file) {
+  const objectUrl = URL.createObjectURL(file);
+  const img = await new Promise((resolve, reject) => {
+    const im = new Image();
+    im.onload = () => resolve(im);
+    im.onerror = reject;
+    im.src = objectUrl;
+  });
+
+  const MAX_DIM = 1400; // cukup tajam untuk TTD/stempel/logo, tapi ringan diproses
+  let w = img.naturalWidth || img.width;
+  let h = img.naturalHeight || img.height;
+  const scale = Math.min(1, MAX_DIM / Math.max(w, h));
+  w = Math.max(1, Math.round(w * scale));
+  h = Math.max(1, Math.round(h * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  URL.revokeObjectURL(objectUrl);
+
+  const imageData = ctx.getImageData(0, 0, w, h);
+  const px = imageData.data;
+
+  if (file.type === 'image/png') {
+    let transparentPixels = 0;
+    for (let i = 3; i < px.length; i += 4) if (px[i] < 250) transparentPixels++;
+    if (transparentPixels / (w * h) > 0.02) {
+      // Sudah punya transparansi asli yang berarti -> jangan diproses ulang.
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+      return { mimeType: 'image/png', base64: await blobToBase64(blob) };
+    }
+  }
+
+  const WHITE_MIN = 235; // ambang kemiripan dengan putih (0-255 per kanal)
+  const isNearWhite = (r, g, b) => r >= WHITE_MIN && g >= WHITE_MIN && b >= WHITE_MIN;
+
+  const visited = new Uint8Array(w * h);
+  const stackX = [];
+  const stackY = [];
+  for (let x = 0; x < w; x++) { stackX.push(x, x); stackY.push(0, h - 1); }
+  for (let y = 0; y < h; y++) { stackX.push(0, w - 1); stackY.push(y, y); }
+
+  while (stackX.length) {
+    const x = stackX.pop();
+    const y = stackY.pop();
+    if (x < 0 || y < 0 || x >= w || y >= h) continue;
+    const idx = y * w + x;
+    if (visited[idx]) continue;
+    visited[idx] = 1;
+    const p = idx * 4;
+    const r = px[p], g = px[p + 1], b = px[p + 2];
+    if (!isNearWhite(r, g, b)) continue;
+    // Pudarkan bertahap dekat tepi objek supaya hasilnya tidak bergerigi.
+    const dist = Math.min(255 - r, 255 - g, 255 - b);
+    px[p + 3] = Math.round(255 * Math.min(1, dist / (255 - WHITE_MIN + 1)));
+    stackX.push(x + 1, x - 1, x, x); stackY.push(y, y, y + 1, y - 1);
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+  return { mimeType: 'image/png', base64: await blobToBase64(blob) };
 }
 
 document.addEventListener('DOMContentLoaded', () => Admin.init());
