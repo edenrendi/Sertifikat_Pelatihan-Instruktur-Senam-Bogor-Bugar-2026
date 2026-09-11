@@ -29,10 +29,21 @@ const CONFIG = {
   // Blangko sudah lengkap (hanya Nama & Kode yang dicetak dinamis oleh sistem).
   // Nilai default ini bisa ditimpa oleh Settings yang disimpan admin (lihat loadSettings()).
   LAYOUT: {
-    kode: { xPct: 0.945, yPct: 0.075, align: 'right',  color: '#14532D', fontFamily: 'Inter',   fontWeight: '700', fontSize: 34 },
-    nama: { xPct: 0.5,   yPct: 0.46,  align: 'center', color: '#14532D', fontFamily: 'Archivo', fontWeight: '900', fontSize: 96 },
-    qr:   { xPct: 0.90,  yPct: 0.855, sizePct: 0.10 }
+    kode: { xPct: 0.945, yPct: 0.075, align: 'right',  color: '#0B3D91', fontFamily: 'Inter',   fontWeight: '700', fontSize: 34 },
+    nama: { xPct: 0.5,   yPct: 0.46,  align: 'center', color: '#0B3D91', fontFamily: 'Archivo', fontWeight: '900', fontSize: 96 },
+    qr:   { xPct: 0.90,  yPct: 0.855, sizePct: 0.10 },
+    // Aset gambar tambahan yang bisa ditempel di atas blangko, posisinya bisa
+    // diatur admin lewat panel "Logo, TTD & Stempel". sizePct = lebar aset
+    // relatif terhadap lebar kanvas sertifikat; tinggi menyesuaikan rasio asli gambar.
+    logo:     { xPct: 0.085, yPct: 0.085, sizePct: 0.09 },
+    ttdKkks:  { xPct: 0.30,  yPct: 0.865, sizePct: 0.12 },
+    stempel:  { xPct: 0.50,  yPct: 0.835, sizePct: 0.11 },
+    ttdKkgo:  { xPct: 0.70,  yPct: 0.865, sizePct: 0.12 }
   },
+
+  // Kunci setiap aset overlay gambar (di luar blangko itu sendiri & QR yang
+  // dibuat otomatis). Dipakai bersama oleh CertRenderer.draw() dan admin.js.
+  OVERLAY_ASSET_KEYS: ['logo', 'ttdKkks', 'stempel', 'ttdKkgo'],
 
   // Pilihan jenis font yang tersedia untuk Nama & Kode di menu Pengaturan
   FONT_CHOICES: ['Archivo', 'Inter', 'Playfair Display', 'Montserrat', 'Georgia', 'Times New Roman', 'Arial'],
@@ -42,6 +53,34 @@ const CONFIG = {
     return window.location.origin + window.location.pathname.replace(/admin\.html$/, 'index.html');
   }
 };
+
+/* ---------------------------------------------------------------------
+ * Util bersama: aset & logo
+ * ------------------------------------------------------------------- */
+// Mengubah objek settings (hasil getSettings) menjadi peta { blangko, logo,
+// ttdKkks, stempel, ttdKkgo } berisi data URI, siap dipakai CertRenderer.draw().
+function assetsFromSettings(settings) {
+  if (!settings) return {};
+  return {
+    blangko: settings.blangkoUrl,
+    logo: settings.logoUrl,
+    ttdKkks: settings.ttdKkksUrl,
+    stempel: settings.stempelUrl,
+    ttdKkgo: settings.ttdKkgoUrl
+  };
+}
+
+// Menempatkan logo web yang diunggah admin ke semua elemen .brand-mark di
+// halaman (header publik, sidebar admin, layar login), menggantikan tanda "SB".
+function applyBrandLogo(url) {
+  if (!url) return;
+  document.querySelectorAll('.brand-mark').forEach((el) => {
+    if (el.dataset.logoApplied === url) return;
+    el.innerHTML = `<img src="${url}" alt="Logo">`;
+    el.classList.add('has-logo');
+    el.dataset.logoApplied = url;
+  });
+}
 
 /* ---------------------------------------------------------------------
  * 2. API HELPER
@@ -77,6 +116,21 @@ const API = {
 const CertRenderer = {
   _blangkoCache: null,
   _blangkoUrl: null,
+  _assetCache: {},
+
+  // Memuat gambar aset overlay (logo/TTD/stempel). Karena aset ini sekarang
+  // selalu berupa data URI (lihat getSettings di code.gs), tidak ada isu CORS
+  // sama sekali -> lebih sederhana & tidak pernah "tainted".
+  loadAssetImage(url) {
+    if (!url) return Promise.resolve(null);
+    if (this._assetCache[url]) return Promise.resolve(this._assetCache[url]);
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => { this._assetCache[url] = im; resolve(im); };
+      im.onerror = reject;
+      im.src = url;
+    });
+  },
 
   async loadBlangko(url) {
     if (this._blangkoCache && this._blangkoUrl === url) return this._blangkoCache;
@@ -133,10 +187,15 @@ const CertRenderer = {
   /**
    * Menggambar satu sertifikat lengkap ke sebuah <canvas> yang diberikan.
    * data: { kode, nama, instansi, tanggal }
-   * blangkoUrl: URL gambar blangko (PNG/JPG)
+   * assets: { blangko, logo, ttdKkks, stempel, ttdKkgo } — masing-masing data URI
+   *         (lihat assetsFromSettings()). Untuk kompatibilitas lama, string biasa
+   *         juga masih diterima dan diperlakukan sebagai blangko saja.
    * layout: opsional, override CONFIG.LAYOUT (dipakai kalau admin sudah kalibrasi posisi)
    */
-  async draw(canvas, data, blangkoUrl, layout) {
+  async draw(canvas, data, assets, layout) {
+    if (typeof assets === 'string') assets = { blangko: assets }; // kompatibilitas lama
+    assets = assets || {};
+    const blangkoUrl = assets.blangko;
     const L = layout || CONFIG.LAYOUT;
     const W = CONFIG.CERT_WIDTH, H = CONFIG.CERT_HEIGHT;
     canvas.width = W;
@@ -194,6 +253,23 @@ const CertRenderer = {
     // blangko, karena blangko sudah lengkap.
     drawText('kode', data.kode);
     drawText('nama', data.nama);
+
+    // Aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO -> masing-masing
+    // opsional, hanya digambar kalau admin sudah mengunggahnya & posisinya diatur.
+    for (const key of CONFIG.OVERLAY_ASSET_KEYS) {
+      const cfg = L[key];
+      const url = assets[key];
+      if (!cfg || !url) continue;
+      try {
+        const img = await this.loadAssetImage(url);
+        if (!img) continue;
+        const w = W * cfg.sizePct;
+        const h = w * (img.naturalHeight / img.naturalWidth || 1); // pertahankan rasio asli gambar
+        ctx.drawImage(img, W * cfg.xPct - w / 2, H * cfg.yPct - h / 2, w, h);
+      } catch (e) {
+        console.warn(`Gagal memuat aset "${key}":`, e);
+      }
+    }
 
     // QR code -> mengarah ke halaman verifikasi
     const qrCfg = L.qr;
@@ -284,6 +360,7 @@ const PublicPage = {
       if (res.success) {
         this.settings = res.data;
         if (res.data.layout) Object.assign(CONFIG.LAYOUT, res.data.layout);
+        applyBrandLogo(res.data.logoUrl);
       }
     } catch (e) {
       console.warn('Gagal memuat pengaturan, memakai default.', e);
@@ -348,7 +425,7 @@ const PublicPage = {
     document.getElementById('metaTanggal').textContent = peserta.tanggal;
 
     const canvas = document.getElementById('certCanvas');
-    await CertRenderer.draw(canvas, peserta, this.settings && this.settings.blangkoUrl, CONFIG.LAYOUT);
+    await CertRenderer.draw(canvas, peserta, assetsFromSettings(this.settings), CONFIG.LAYOUT);
   },
 
   async downloadCurrent() {
