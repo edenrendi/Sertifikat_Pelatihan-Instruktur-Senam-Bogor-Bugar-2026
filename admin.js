@@ -447,6 +447,9 @@ const Admin = {
         previewEl.innerHTML = `<img src="${res.url}" alt="${labels[kind] || kind}">`;
         CertRenderer._assetCache = {};
         if (this.state.settings) this.state.settings[kind + 'Url'] = res.url;
+        // Logo Web tampil sebagai logo situs (header) -> perbarui langsung tanpa
+        // perlu muat ulang halaman. Aset lain (TTD/Stempel) cukup lewat pratinjau sertifikat.
+        if (kind === 'logo') applyBrandLogo(res.url);
         this.toast(`${labels[kind] || 'Aset'} berhasil diunggah, latar putih dihapus otomatis.`, 'success');
         this.previewPosisi();
       } else {
@@ -472,7 +475,8 @@ const Admin = {
         const res = await API.post('addPeserta', {
           data: {
             nama: document.getElementById('manualNama').value.trim(),
-            instansi: document.getElementById('manualInstansi').value.trim()
+            instansi: document.getElementById('manualInstansi').value.trim(),
+            jabatan: document.getElementById('manualJabatan').value.trim()
           }
         });
         if (res.success) {
@@ -499,19 +503,19 @@ const Admin = {
   },
 
   downloadTemplateXlsx() {
-    // Dibuat sebagai file .xlsx sungguhan (bukan teks CSV) supaya kolom No/Nama/Nama
-    // Sekolah PASTI terpisah rapi saat dibuka di Excel, tidak tergantung pengaturan
+    // Dibuat sebagai file .xlsx sungguhan (bukan teks CSV) supaya kolom No/Nama/Tempat
+    // Tugas/Jabatan PASTI terpisah rapi saat dibuka di Excel, tidak tergantung pengaturan
     // pemisah desimal/daftar (locale) di Excel masing-masing perangkat.
     // eslint-disable-next-line no-undef
     const wsData = [
-      ['No', 'Nama', 'Nama Sekolah'],
-      [1, 'Contoh Nama Peserta', 'SD Negeri Cigombong 01'],
-      [2, 'Contoh Nama Peserta Dua', 'SD Negeri Cigombong 02'],
-      [3, 'Contoh Nama Peserta Tiga', 'SD Negeri Cigombong 03']
+      ['No', 'Nama', 'Tempat Tugas', 'Jabatan'],
+      [1, 'Contoh Nama Peserta', 'SD Negeri Cigombong 01', 'Guru PJOK'],
+      [2, 'Contoh Nama Peserta Dua', 'SD Negeri Cigombong 02', 'Kepala Sekolah'],
+      [3, 'Contoh Nama Peserta Tiga', 'SD Negeri Cigombong 03', 'Guru Kelas']
     ];
     // eslint-disable-next-line no-undef
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 6 }, { wch: 32 }, { wch: 32 }];
+    ws['!cols'] = [{ wch: 6 }, { wch: 32 }, { wch: 32 }, { wch: 24 }];
     // eslint-disable-next-line no-undef
     const wb = XLSX.utils.book_new();
     // eslint-disable-next-line no-undef
@@ -537,7 +541,10 @@ const Admin = {
         }
         const mapped = rows.map((r) => ({
           nama: (r['Nama'] || r['Nama Lengkap'] || '').toString().trim(),
-          instansi: (r['Nama Sekolah'] || r['Instansi/Kecamatan'] || r['Instansi'] || '').toString().trim()
+          // "Tempat Tugas" adalah nama kolom baru; "Nama Sekolah"/"Instansi" tetap
+          // dikenali supaya template lama masih bisa diunggah tanpa perlu diubah.
+          instansi: (r['Tempat Tugas'] || r['Nama Sekolah'] || r['Instansi/Kecamatan'] || r['Instansi'] || '').toString().trim(),
+          jabatan: (r['Jabatan'] || '').toString().trim()
         })).filter((r) => r.nama);
 
         if (!mapped.length) {
@@ -558,9 +565,9 @@ const Admin = {
     box.style.display = 'block';
     box.querySelector('.panel-desc').textContent = `${rows.length} peserta siap diimpor. Kode sertifikat akan dibuat otomatis.`;
     const tbody = box.querySelector('tbody');
-    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td></tr>`).join('');
+    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td><td>${escapeHtml(r.jabatan || '-')}</td></tr>`).join('');
     if (rows.length > 8) {
-      tbody.innerHTML += `<tr><td colspan="2" style="color:var(--ink-soft)">+ ${rows.length - 8} baris lainnya...</td></tr>`;
+      tbody.innerHTML += `<tr><td colspan="3" style="color:var(--ink-soft)">+ ${rows.length - 8} baris lainnya...</td></tr>`;
     }
     document.getElementById('confirmBulkBtn').onclick = () => this.confirmBulkImport();
   },
@@ -613,14 +620,14 @@ const Admin = {
 
   async loadPeserta() {
     const tbody = document.querySelector('#pesertaTable tbody');
-    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:30px;"><span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memuat data...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:30px;"><span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memuat data...</td></tr>`;
     const res = await API.get('listPeserta', {
       page: this.state.page,
       pageSize: this.state.pageSize,
       q: this.state.query
     });
     if (!res.success) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--coral-dark);padding:30px;">Gagal memuat data peserta.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--coral-dark);padding:30px;">Gagal memuat data peserta.</td></tr>`;
       return;
     }
     this.state.rows = res.data.rows;
@@ -631,13 +638,14 @@ const Admin = {
   renderTable() {
     const tbody = document.querySelector('#pesertaTable tbody');
     if (!this.state.rows.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--ink-soft);padding:30px;">Belum ada data peserta.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:30px;">Belum ada data peserta.</td></tr>`;
     } else {
       tbody.innerHTML = this.state.rows.map((r) => `
         <tr>
           <td><strong>${escapeHtml(r.kode)}</strong></td>
           <td>${escapeHtml(r.nama)}</td>
           <td>${escapeHtml(r.instansi || '-')}</td>
+          <td>${escapeHtml(r.jabatan || '-')}</td>
           <td>${escapeHtml(r.tanggal || '-')}</td>
           <td><span class="badge">${r.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif'}</span></td>
           <td>
@@ -723,6 +731,7 @@ const Admin = {
             data: {
               nama: document.getElementById('editNama').value.trim(),
               instansi: document.getElementById('editInstansi').value.trim(),
+              jabatan: document.getElementById('editJabatan').value.trim(),
               status: document.getElementById('editStatus').value
             }
           });
@@ -746,6 +755,7 @@ const Admin = {
     document.getElementById('editKodeLabel').textContent = row.kode;
     document.getElementById('editNama').value = row.nama;
     document.getElementById('editInstansi').value = row.instansi || '';
+    document.getElementById('editJabatan').value = row.jabatan || '';
     document.getElementById('editStatus').value = row.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif';
     document.getElementById('modalOverlay').classList.add('show');
   },
