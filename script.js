@@ -41,9 +41,15 @@ const CONFIG = {
     ttdKkgo:  { xPct: 0.70,  yPct: 0.865, sizePct: 0.12, enabled: true }
   },
 
-  // Kunci setiap aset overlay gambar (di luar blangko itu sendiri & QR yang
-  // dibuat otomatis). Dipakai bersama oleh CertRenderer.draw() dan admin.js.
+  // Kunci setiap aset gambar yang dikelola admin (unggah & pratinjau) di panel
+  // "Logo Web, TTD & Stempel". Dipakai admin.js untuk dropzone/pratinjau.
   OVERLAY_ASSET_KEYS: ['logo', 'ttdKkks', 'stempel', 'ttdKkgo'],
+
+  // Dari daftar di atas, hanya aset berikut yang benar-benar DIGAMBAR di atas
+  // blangko sertifikat oleh CertRenderer.draw(). Logo Web SENGAJA tidak
+  // disertakan di sini karena logo hanya tampil sebagai logo situs (header),
+  // bukan ditempel pada lembar sertifikat.
+  CERT_ASSET_KEYS: ['ttdKkks', 'stempel', 'ttdKkgo'],
 
   // Pilihan jenis font yang tersedia untuk Nama & Kode di menu Pengaturan
   FONT_CHOICES: ['Archivo', 'Inter', 'Playfair Display', 'Montserrat', 'Georgia', 'Times New Roman', 'Arial'],
@@ -254,10 +260,12 @@ const CertRenderer = {
     drawText('kode', data.kode);
     drawText('nama', data.nama);
 
-    // Aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO -> masing-masing
-    // opsional, hanya digambar kalau admin sudah mengunggahnya, posisinya diatur,
-    // dan tombol aktif/nonaktifnya sedang dinyalakan (cfg.enabled !== false).
-    for (const key of CONFIG.OVERLAY_ASSET_KEYS) {
+    // Aset yang ditempel di atas blangko: TTD Ketua KKKS, Stempel, TTD Ketua
+    // KKGO -> masing-masing opsional, hanya digambar kalau admin sudah
+    // mengunggahnya, posisinya diatur, dan tombol aktif/nonaktifnya sedang
+    // dinyalakan (cfg.enabled !== false). Logo Web TIDAK ikut digambar di sini
+    // karena logo hanya tampil sebagai logo situs (lihat applyBrandLogo()).
+    for (const key of CONFIG.CERT_ASSET_KEYS) {
       const cfg = L[key];
       const url = assets[key];
       if (!cfg || !url || cfg.enabled === false) continue;
@@ -423,6 +431,7 @@ const PublicPage = {
     document.getElementById('metaKode').textContent = peserta.kode;
     document.getElementById('metaNama').textContent = peserta.nama;
     document.getElementById('metaInstansi').textContent = peserta.instansi || '-';
+    document.getElementById('metaJabatan').textContent = peserta.jabatan || '-';
     document.getElementById('metaTanggal').textContent = peserta.tanggal;
 
     const canvas = document.getElementById('certCanvas');
