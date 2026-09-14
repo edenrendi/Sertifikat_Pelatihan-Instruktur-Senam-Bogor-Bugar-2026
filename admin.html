@@ -160,7 +160,7 @@
 
         <div class="panel">
           <h2>Logo Web, TTD &amp; Stempel</h2>
-          <p class="panel-desc">Aset opsional yang ditempel di atas blangko (dan logo web juga tampil di header situs). Format PNG/JPG — latar belakang putih pada TTD &amp; stempel otomatis dihapus (dibuat transparan) saat diunggah. Atur posisi &amp; ukuran masing-masing dalam persen (0–100).</p>
+          <p class="panel-desc">Logo Web hanya tampil sebagai logo di header situs (halaman peserta &amp; dashboard admin) — tidak ditempel pada lembar sertifikat. TTD &amp; Stempel di bawahnya adalah aset yang ditempel di atas blangko. Format PNG/JPG — latar belakang putih pada TTD &amp; stempel otomatis dihapus (dibuat transparan) saat diunggah.</p>
 
           <div class="asset-row">
             <div class="asset-row-upload" id="logoDrop" title="Klik untuk mengunggah Logo Web">
@@ -170,16 +170,8 @@
             <div class="asset-row-fields">
               <div class="asset-row-head">
                 <span class="asset-row-name">Logo Web</span>
-              <label class="toggle-switch" title="Tampilkan di sertifikat">
-                <input type="checkbox" id="enableLogo" checked>
-                <span class="toggle-slider"></span>
-              </label>
               </div>
-              <div class="field-grid-3" id="fieldsLogo">
-                <div class="field"><label for="posLogoX">X (%)</label><input type="number" id="posLogoX" min="0" max="100" value="9"></div>
-                <div class="field"><label for="posLogoY">Y (%)</label><input type="number" id="posLogoY" min="0" max="100" value="9"></div>
-                <div class="field"><label for="posLogoSize">Ukuran (%)</label><input type="number" id="posLogoSize" min="1" max="60" value="9"></div>
-              </div>
+              <p class="field-hint" style="flex:1;min-width:0;margin:0;">Tampil sebagai logo situs di header halaman peserta &amp; dashboard admin. Tidak ikut dicetak di sertifikat.</p>
             </div>
           </div>
 
@@ -262,7 +254,7 @@
 
       <div class="panel">
         <h2>Download Template Excel</h2>
-        <p class="panel-desc">Unduh dulu template ini, isi datanya (kolom No, Nama, Nama Sekolah — data peserta mengurut ke bawah, satu baris per peserta), baru unggah lagi lewat "Unggah Massal" di bawah.</p>
+        <p class="panel-desc">Unduh dulu template ini, isi datanya (kolom No, Nama, Tempat Tugas, Jabatan — data peserta mengurut ke bawah, satu baris per peserta), baru unggah lagi lewat "Unggah Massal" di bawah.</p>
         <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel (.xlsx)</button>
       </div>
 
@@ -276,7 +268,7 @@
           <h2>Pratinjau Data</h2>
           <p class="panel-desc"></p>
           <table class="data-table">
-            <thead><tr><th>Nama Lengkap</th><th>Nama Sekolah</th></tr></thead>
+            <thead><tr><th>Nama Lengkap</th><th>Tempat Tugas</th><th>Jabatan</th></tr></thead>
             <tbody></tbody>
           </table>
           <button type="button" class="btn btn-coral" id="confirmBulkBtn" style="margin-top:14px;">Konfirmasi Impor</button>
@@ -293,8 +285,12 @@
               <input type="text" id="manualNama" required>
             </div>
             <div class="field">
-              <label for="manualInstansi">Nama Sekolah</label>
+              <label for="manualInstansi">Tempat Tugas</label>
               <input type="text" id="manualInstansi">
+            </div>
+            <div class="field">
+              <label for="manualJabatan">Jabatan</label>
+              <input type="text" id="manualJabatan">
             </div>
           </div>
           <button type="submit" class="btn btn-primary" style="margin-top:16px;">Tambah Peserta</button>
@@ -326,7 +322,7 @@
         <div style="overflow-x:auto;">
           <table class="data-table" id="pesertaTable">
             <thead>
-              <tr><th>Kode</th><th>Nama</th><th>Nama Sekolah</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
+              <tr><th>Kode</th><th>Nama</th><th>Tempat Tugas</th><th>Jabatan</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -356,8 +352,12 @@
         <input type="text" id="editNama" required>
       </div>
       <div class="field">
-        <label for="editInstansi">Nama Sekolah</label>
+        <label for="editInstansi">Tempat Tugas</label>
         <input type="text" id="editInstansi">
+      </div>
+      <div class="field">
+        <label for="editJabatan">Jabatan</label>
+        <input type="text" id="editJabatan">
       </div>
       <div class="field">
         <label for="editStatus">Status Sertifikat</label>
