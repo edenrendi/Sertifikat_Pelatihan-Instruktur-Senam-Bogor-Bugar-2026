@@ -59,7 +59,7 @@ const CONFIG = {
   SEBAGAI_CHOICES: ['PESERTA', 'PANITIA'],
 
   // Pilihan jenis font yang tersedia untuk Nama & Kode di menu Pengaturan
-  FONT_CHOICES: ['Archivo', 'Inter', 'Playfair Display', 'Montserrat', 'Georgia', 'Times New Roman', 'Arial'],
+  FONT_CHOICES: ['Archivo', 'Inter', 'Playfair Display', 'Montserrat', 'League Spartan', 'Georgia', 'Times New Roman', 'Arial'],
 
   // URL dasar untuk link verifikasi yang ditanam di QR Code (auto terisi dari lokasi halaman saat ini)
   get VERIFY_BASE_URL() {
