@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — E-Sertifikat Bogor Bugar 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;900&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@400;600;700;900&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -108,6 +111,42 @@
             <div class="field"><label for="posKodeY">Kode — Posisi Y (%)</label><input type="number" id="posKodeY" min="0" max="100" value="7"></div>
             <div class="field"><label for="posQrX">QR Code — Posisi X (%)</label><input type="number" id="posQrX" min="0" max="100" value="90"></div>
             <div class="field"><label for="posQrY">QR Code — Posisi Y (%)</label><input type="number" id="posQrY" min="0" max="100" value="85"></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="asset-row-head" style="margin-bottom:6px;">
+            <h2 style="margin:0;">Kolom &ldquo;Sebagai&rdquo;</h2>
+            <label class="toggle-switch" title="Tampilkan di sertifikat">
+              <input type="checkbox" id="enableSebagai">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <p class="panel-desc">Cetak keterangan peran (mis. PESERTA atau PANITIA) di sertifikat. Isi di sini berlaku untuk semua sertifikat; bila kolom &ldquo;Sebagai&rdquo; pada data seseorang diisi, isi itu yang dipakai untuk orang tersebut. Posisi, font, dan warna diatur seperti Nama.</p>
+          <div class="field-grid" id="fieldsSebagai">
+            <div class="field"><label for="sebagaiMode">Isi Default</label>
+              <select id="sebagaiMode">
+                <option value="PESERTA">PESERTA</option>
+                <option value="PANITIA">PANITIA</option>
+                <option value="MANUAL">Isi manual…</option>
+              </select>
+            </div>
+            <div class="field" id="sebagaiManualField" style="display:none;"><label for="sebagaiManual">Teks Manual</label><input type="text" id="sebagaiManual" maxlength="40" placeholder="mis. NARASUMBER"></div>
+            <div class="field"><label for="posSebagaiX">Sebagai — Posisi X (%)</label><input type="number" id="posSebagaiX" min="0" max="100" value="50"></div>
+            <div class="field"><label for="posSebagaiY">Sebagai — Posisi Y (%)</label><input type="number" id="posSebagaiY" min="0" max="100" value="53"></div>
+            <div class="field"><label for="sebagaiFontFamily">Sebagai — Jenis Font</label>
+              <select id="sebagaiFontFamily">
+                <option value="Archivo">Archivo (tegas)</option>
+                <option value="Inter">Inter (modern)</option>
+                <option value="Playfair Display">Playfair Display (elegan/serif)</option>
+                <option value="Montserrat" selected>Montserrat</option>
+                <option value="Georgia">Georgia</option>
+                <option value="Times New Roman">Times New Roman</option>
+                <option value="Arial">Arial</option>
+              </select>
+            </div>
+            <div class="field"><label for="sebagaiFontSize">Sebagai — Ukuran Font (px)</label><input type="number" id="sebagaiFontSize" min="14" max="200" value="52"></div>
+            <div class="field"><label for="sebagaiColor">Sebagai — Warna Font</label><input type="color" id="sebagaiColor" value="#0B3D91"></div>
           </div>
         </div>
 
@@ -254,7 +293,7 @@
 
       <div class="panel">
         <h2>Download Template Excel</h2>
-        <p class="panel-desc">Unduh dulu template ini, isi datanya (kolom No, Nama, Tempat Tugas, Jabatan — data peserta mengurut ke bawah, satu baris per peserta), baru unggah lagi lewat "Unggah Massal" di bawah.</p>
+        <p class="panel-desc">Unduh dulu template ini, isi datanya (kolom No, Nama, Tempat Tugas, Jabatan, Sebagai [opsional] — data peserta mengurut ke bawah, satu baris per peserta), baru unggah lagi lewat "Unggah Massal" di bawah.</p>
         <button type="button" class="btn btn-ghost" id="downloadTemplateBtn">Download Template Excel (.xlsx)</button>
       </div>
 
@@ -268,7 +307,7 @@
           <h2>Pratinjau Data</h2>
           <p class="panel-desc"></p>
           <table class="data-table">
-            <thead><tr><th>Nama Lengkap</th><th>Tempat Tugas</th><th>Jabatan</th></tr></thead>
+            <thead><tr><th>Nama Lengkap</th><th>Tempat Tugas</th><th>Jabatan</th><th>Sebagai</th></tr></thead>
             <tbody></tbody>
           </table>
           <button type="button" class="btn btn-coral" id="confirmBulkBtn" style="margin-top:14px;">Konfirmasi Impor</button>
@@ -291,6 +330,10 @@
             <div class="field">
               <label for="manualJabatan">Jabatan</label>
               <input type="text" id="manualJabatan">
+            </div>
+            <div class="field">
+              <label for="manualSebagai">Sebagai (opsional)</label>
+              <input type="text" id="manualSebagai" list="sebagaiOptions" placeholder="Kosong = ikut default Pengaturan" maxlength="40">
             </div>
           </div>
           <button type="submit" class="btn btn-primary" style="margin-top:16px;">Tambah Peserta</button>
@@ -322,7 +365,7 @@
         <div style="overflow-x:auto;">
           <table class="data-table" id="pesertaTable">
             <thead>
-              <tr><th>Kode</th><th>Nama</th><th>Tempat Tugas</th><th>Jabatan</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
+              <tr><th>Kode</th><th>Nama</th><th>Tempat Tugas</th><th>Jabatan</th><th>Sebagai</th><th>Tanggal</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody></tbody>
           </table>
@@ -341,6 +384,8 @@
   </main>
 </div>
 
+<datalist id="sebagaiOptions"><option value="PESERTA"><option value="PANITIA"></datalist>
+
 <!-- ============================= MODAL EDIT ============================= -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
@@ -358,6 +403,10 @@
       <div class="field">
         <label for="editJabatan">Jabatan</label>
         <input type="text" id="editJabatan">
+      </div>
+      <div class="field">
+        <label for="editSebagai">Sebagai (opsional)</label>
+        <input type="text" id="editSebagai" list="sebagaiOptions" placeholder="Kosong = ikut default Pengaturan" maxlength="40">
       </div>
       <div class="field">
         <label for="editStatus">Status Sertifikat</label>
