@@ -5,7 +5,7 @@
    Hujan") dan energi olahraga senam.
    ========================================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;900&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@400;600;700;900&display=swap');
+/* Font Google dimuat lewat <link> di <head> (lebih cepat daripada @import yang memblokir render). */
 
 :root{
   --bg:            #EEF3FA;   /* biru-putih lembut, gaya portal pemerintah */
@@ -232,9 +232,23 @@ input, select, textarea{ font-family:inherit; }
 .is-invalid .dot{ background:var(--coral); }
 .result-body{ padding:26px; display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:center; }
 .result-canvas-wrap{
+  position:relative; aspect-ratio:297 / 210;
   border:1px solid var(--line); border-radius:var(--radius-md);
   overflow:hidden; background:#fafaf7;
 }
+/* Penanda memuat di atas area sertifikat (menggantikan kotak putih kosong) */
+.cert-loading{
+  position:absolute; inset:0; z-index:2;
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px;
+  padding:18px; text-align:center;
+  color:var(--ink-soft); font-size:13.5px; font-weight:600; line-height:1.5;
+  background:linear-gradient(110deg,#f1f2ea 30%,#fbfbf8 50%,#f1f2ea 70%);
+  background-size:200% 100%; animation:shimmer 1.4s linear infinite;
+}
+.cert-loading[hidden]{ display:none; }
+.cert-loading .spinner{ width:26px; height:26px; margin:0; border-color:rgba(20,83,45,.2); border-top-color:var(--forest); }
+@keyframes shimmer{ to{ background-position:-200% 0; } }
+.field-grid.is-disabled{ opacity:.4; }
 .result-canvas-wrap canvas{ width:100%; height:auto; display:block; }
 .result-meta dl{ margin:0; }
 .result-meta .row{ display:flex; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px dashed var(--line); }
