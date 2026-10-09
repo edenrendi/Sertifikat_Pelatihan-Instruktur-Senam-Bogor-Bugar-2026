@@ -135,8 +135,8 @@ const Admin = {
     }
     applyBrandLogo(res.data.logoUrl);
 
-    const L = { kode: {}, nama: {}, qr: {} };
-    ['kode', 'nama', 'qr'].concat(CONFIG.OVERLAY_ASSET_KEYS).forEach((key) => {
+    const L = { kode: {}, nama: {}, qr: {}, sebagai: {} };
+    ['kode', 'nama', 'qr', 'sebagai'].concat(CONFIG.OVERLAY_ASSET_KEYS).forEach((key) => {
       L[key] = Object.assign({}, CONFIG.LAYOUT[key], (res.data.layout && res.data.layout[key]) || {});
     });
     Object.assign(CONFIG.LAYOUT, L); // supaya Download/Review pakai pengaturan tersimpan, bukan default
@@ -153,6 +153,20 @@ const Admin = {
     document.getElementById('kodeFontFamily').value = L.kode.fontFamily;
     document.getElementById('kodeFontSize').value = L.kode.fontSize;
     document.getElementById('kodeColor').value = L.kode.color;
+
+    // Kolom "Sebagai"
+    document.getElementById('enableSebagai').checked = !!L.sebagai.enabled;
+    document.getElementById('posSebagaiX').value = Math.round(L.sebagai.xPct * 100);
+    document.getElementById('posSebagaiY').value = Math.round(L.sebagai.yPct * 100);
+    document.getElementById('sebagaiFontFamily').value = L.sebagai.fontFamily;
+    document.getElementById('sebagaiFontSize').value = L.sebagai.fontSize;
+    document.getElementById('sebagaiColor').value = L.sebagai.color;
+    const sbText = (L.sebagai.text || 'PESERTA').toString();
+    const sbPreset = CONFIG.SEBAGAI_CHOICES.includes(sbText.toUpperCase());
+    document.getElementById('sebagaiMode').value = sbPreset ? sbText.toUpperCase() : 'MANUAL';
+    document.getElementById('sebagaiManual').value = sbPreset ? '' : sbText;
+    this.syncSebagaiManualField();
+    this.toggleAssetFieldsState('sebagai');
 
     // Pratinjau & posisi untuk aset overlay: logo, TTD Ketua KKKS, stempel, TTD Ketua KKGO
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
@@ -219,7 +233,9 @@ const Admin = {
     const liveFieldIds = [
       'posNamaX', 'posNamaY', 'posKodeX', 'posKodeY', 'posQrX', 'posQrY',
       'namaFontFamily', 'namaFontSize', 'namaColor',
-      'kodeFontFamily', 'kodeFontSize', 'kodeColor'
+      'kodeFontFamily', 'kodeFontSize', 'kodeColor',
+      'posSebagaiX', 'posSebagaiY', 'sebagaiMode', 'sebagaiManual',
+      'sebagaiFontFamily', 'sebagaiFontSize', 'sebagaiColor'
     ];
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
       liveFieldIds.push('pos' + capitalize(key) + 'X', 'pos' + capitalize(key) + 'Y', 'pos' + capitalize(key) + 'Size');
@@ -235,7 +251,10 @@ const Admin = {
     liveFieldIds.forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
-      el.addEventListener('input', () => { scheduleLivePreview(); this.scheduleAutosave(); });
+      el.addEventListener('input', () => {
+        if (id === 'sebagaiMode') this.syncSebagaiManualField();
+        scheduleLivePreview(); this.scheduleAutosave();
+      });
     });
     infoFieldIds.forEach((id) => {
       const el = document.getElementById(id);
@@ -246,7 +265,7 @@ const Admin = {
     // ---- Tombol aktif/nonaktif per aset (Logo Web, TTD, Stempel) ----
     // Saat dimatikan, aset tetap tersimpan di server tapi tidak digambar di
     // atas sertifikat. Field posisi/ukuran ikut dinonaktifkan secara visual.
-    CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
+    CONFIG.OVERLAY_ASSET_KEYS.concat('sebagai').forEach((key) => {
       const enEl = document.getElementById('enable' + capitalize(key));
       if (!enEl) return;
       enEl.addEventListener('change', () => {
@@ -259,6 +278,26 @@ const Admin = {
     // Tombol "Pratinjau" tetap ada sebagai penyegar manual bila diperlukan.
     const previewBtn = document.getElementById('previewPosisiBtn');
     if (previewBtn) previewBtn.addEventListener('click', () => this.previewPosisi());
+  },
+
+  /** Tampilkan kolom "Teks Manual" hanya saat pilihan "Isi manual…" dipilih. */
+  syncSebagaiManualField() {
+    const manual = document.getElementById('sebagaiMode').value === 'MANUAL';
+    document.getElementById('sebagaiManualField').style.display = manual ? '' : 'none';
+  },
+
+  /** Konfigurasi kolom "Sebagai" dari isian form (dipakai simpan & pratinjau). */
+  sebagaiFromForm() {
+    const num = (id) => parseFloat(document.getElementById(id).value) || 0;
+    const val = (id) => document.getElementById(id).value;
+    const mode = val('sebagaiMode');
+    const text = mode === 'MANUAL' ? (val('sebagaiManual').trim() || 'PESERTA') : mode;
+    return Object.assign({}, CONFIG.LAYOUT.sebagai, {
+      enabled: document.getElementById('enableSebagai').checked,
+      text,
+      xPct: num('posSebagaiX') / 100, yPct: num('posSebagaiY') / 100,
+      fontFamily: val('sebagaiFontFamily'), fontSize: num('sebagaiFontSize'), color: val('sebagaiColor')
+    });
   },
 
   /** Nyala/matikan visual field posisi & ukuran sesuai status toggle aset ini. */
@@ -284,7 +323,8 @@ const Admin = {
         xPct: num('posKodeX') / 100, yPct: num('posKodeY') / 100,
         fontFamily: val('kodeFontFamily'), fontSize: num('kodeFontSize'), color: val('kodeColor')
       }),
-      qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 })
+      qr: Object.assign({}, CONFIG.LAYOUT.qr, { xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 }),
+      sebagai: this.sebagaiFromForm()
     };
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
@@ -364,18 +404,26 @@ const Admin = {
       return;
     }
     document.getElementById('blangkoPreview').innerHTML = '<span class="spinner"></span> Mengunggah...';
-    const base64 = await fileToBase64(file);
+    let upload;
+    try {
+      upload = await compressBlangko(file); // kecilkan dulu: file lebih ringan = halaman peserta jauh lebih cepat
+    } catch (e) {
+      upload = { filename: file.name, mimeType: file.type, base64: await fileToBase64(file), before: file.size, after: file.size };
+    }
     try {
       const res = await API.post('uploadBlangko', {
-        filename: file.name,
-        mimeType: file.type,
-        base64
+        filename: upload.filename,
+        mimeType: upload.mimeType,
+        base64: upload.base64
       });
       if (res.success) {
         document.getElementById('blangkoPreview').innerHTML = `<img src="${res.url}" alt="Blangko sertifikat">`;
         CertRenderer._blangkoCache = null;
         if (this.state.settings) this.state.settings.blangkoUrl = res.url;
-        this.toast('Blangko berhasil diunggah.', 'success');
+        const mb = (n) => (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+        this.toast(upload.after < upload.before
+          ? `Blangko berhasil diunggah dan dioptimalkan (${mb(upload.before)} → ${mb(upload.after)}).`
+          : 'Blangko berhasil diunggah.', 'success');
         this.previewPosisi();
       } else {
         this.toast(res.message || 'Gagal mengunggah blangko.', 'error');
@@ -402,7 +450,8 @@ const Admin = {
         ...CONFIG.LAYOUT.nama, xPct: num('posNamaX') / 100, yPct: num('posNamaY') / 100,
         fontFamily: val('namaFontFamily'), fontSize: num('namaFontSize'), color: val('namaColor')
       },
-      qr: { ...CONFIG.LAYOUT.qr, xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 }
+      qr: { ...CONFIG.LAYOUT.qr, xPct: num('posQrX') / 100, yPct: num('posQrY') / 100 },
+      sebagai: this.sebagaiFromForm()
     };
     CONFIG.OVERLAY_ASSET_KEYS.forEach((key) => {
       const xEl = document.getElementById('pos' + capitalize(key) + 'X');
@@ -420,7 +469,7 @@ const Admin = {
     await CertRenderer.draw(canvas, {
       kode: (this.state.settings.kodePrefix || 'SBB-2026-') + '0001',
       nama: 'Nama Peserta Contoh'
-    }, assetsFromSettings(this.state.settings), layout);
+    }, assetsFromSettings(this.state.settings), layout, { scale: 0.5 }); // pratinjau setengah resolusi = lebih cepat
   },
 
   /* ---------------- UPLOAD ASET OVERLAY (logo, TTD, stempel) ---------------- */
@@ -476,7 +525,8 @@ const Admin = {
           data: {
             nama: document.getElementById('manualNama').value.trim(),
             instansi: document.getElementById('manualInstansi').value.trim(),
-            jabatan: document.getElementById('manualJabatan').value.trim()
+            jabatan: document.getElementById('manualJabatan').value.trim(),
+            sebagai: document.getElementById('manualSebagai').value.trim()
           }
         });
         if (res.success) {
@@ -508,14 +558,14 @@ const Admin = {
     // pemisah desimal/daftar (locale) di Excel masing-masing perangkat.
     // eslint-disable-next-line no-undef
     const wsData = [
-      ['No', 'Nama', 'Tempat Tugas', 'Jabatan'],
-      [1, 'Contoh Nama Peserta', 'SD Negeri Cigombong 01', 'Guru PJOK'],
-      [2, 'Contoh Nama Peserta Dua', 'SD Negeri Cigombong 02', 'Kepala Sekolah'],
-      [3, 'Contoh Nama Peserta Tiga', 'SD Negeri Cigombong 03', 'Guru Kelas']
+      ['No', 'Nama', 'Tempat Tugas', 'Jabatan', 'Sebagai'],
+      [1, 'Contoh Nama Peserta', 'SD Negeri Cigombong 01', 'Guru PJOK', 'PESERTA'],
+      [2, 'Contoh Nama Peserta Dua', 'SD Negeri Cigombong 02', 'Kepala Sekolah', 'PANITIA'],
+      [3, 'Contoh Nama Peserta Tiga', 'SD Negeri Cigombong 03', 'Guru Kelas', '']  // kosong = ikut default Pengaturan
     ];
     // eslint-disable-next-line no-undef
     const ws = XLSX.utils.aoa_to_sheet(wsData);
-    ws['!cols'] = [{ wch: 6 }, { wch: 32 }, { wch: 32 }, { wch: 24 }];
+    ws['!cols'] = [{ wch: 6 }, { wch: 32 }, { wch: 32 }, { wch: 24 }, { wch: 18 }];
     // eslint-disable-next-line no-undef
     const wb = XLSX.utils.book_new();
     // eslint-disable-next-line no-undef
@@ -544,7 +594,8 @@ const Admin = {
           // "Tempat Tugas" adalah nama kolom baru; "Nama Sekolah"/"Instansi" tetap
           // dikenali supaya template lama masih bisa diunggah tanpa perlu diubah.
           instansi: (r['Tempat Tugas'] || r['Nama Sekolah'] || r['Instansi/Kecamatan'] || r['Instansi'] || '').toString().trim(),
-          jabatan: (r['Jabatan'] || '').toString().trim()
+          jabatan: (r['Jabatan'] || '').toString().trim(),
+          sebagai: (r['Sebagai'] || '').toString().trim()
         })).filter((r) => r.nama);
 
         if (!mapped.length) {
@@ -565,7 +616,7 @@ const Admin = {
     box.style.display = 'block';
     box.querySelector('.panel-desc').textContent = `${rows.length} peserta siap diimpor. Kode sertifikat akan dibuat otomatis.`;
     const tbody = box.querySelector('tbody');
-    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td><td>${escapeHtml(r.jabatan || '-')}</td></tr>`).join('');
+    tbody.innerHTML = rows.slice(0, 8).map((r) => `<tr><td>${escapeHtml(r.nama)}</td><td>${escapeHtml(r.instansi)}</td><td>${escapeHtml(r.jabatan || '-')}</td><td>${escapeHtml(r.sebagai || '-')}</td></tr>`).join('');
     if (rows.length > 8) {
       tbody.innerHTML += `<tr><td colspan="3" style="color:var(--ink-soft)">+ ${rows.length - 8} baris lainnya...</td></tr>`;
     }
@@ -620,14 +671,14 @@ const Admin = {
 
   async loadPeserta() {
     const tbody = document.querySelector('#pesertaTable tbody');
-    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:30px;"><span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memuat data...</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--ink-soft);padding:30px;"><span class="spinner" style="border-top-color:var(--forest);border-color:rgba(20,83,45,.25)"></span> Memuat data...</td></tr>`;
     const res = await API.get('listPeserta', {
       page: this.state.page,
       pageSize: this.state.pageSize,
       q: this.state.query
     });
     if (!res.success) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--coral-dark);padding:30px;">Gagal memuat data peserta.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--coral-dark);padding:30px;">Gagal memuat data peserta.</td></tr>`;
       return;
     }
     this.state.rows = res.data.rows;
@@ -638,7 +689,7 @@ const Admin = {
   renderTable() {
     const tbody = document.querySelector('#pesertaTable tbody');
     if (!this.state.rows.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--ink-soft);padding:30px;">Belum ada data peserta.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--ink-soft);padding:30px;">Belum ada data peserta.</td></tr>`;
     } else {
       tbody.innerHTML = this.state.rows.map((r) => `
         <tr>
@@ -646,6 +697,7 @@ const Admin = {
           <td>${escapeHtml(r.nama)}</td>
           <td>${escapeHtml(r.instansi || '-')}</td>
           <td>${escapeHtml(r.jabatan || '-')}</td>
+          <td>${escapeHtml(r.sebagai || '-')}</td>
           <td>${escapeHtml(r.tanggal || '-')}</td>
           <td><span class="badge">${r.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif'}</span></td>
           <td>
@@ -732,6 +784,7 @@ const Admin = {
               nama: document.getElementById('editNama').value.trim(),
               instansi: document.getElementById('editInstansi').value.trim(),
               jabatan: document.getElementById('editJabatan').value.trim(),
+              sebagai: document.getElementById('editSebagai').value.trim(),
               status: document.getElementById('editStatus').value
             }
           });
@@ -756,6 +809,7 @@ const Admin = {
     document.getElementById('editNama').value = row.nama;
     document.getElementById('editInstansi').value = row.instansi || '';
     document.getElementById('editJabatan').value = row.jabatan || '';
+    document.getElementById('editSebagai').value = row.sebagai || '';
     document.getElementById('editStatus').value = row.status === 'Nonaktif' ? 'Nonaktif' : 'Aktif';
     document.getElementById('modalOverlay').classList.add('show');
   },
@@ -875,6 +929,45 @@ function blobToBase64(blob) {
 }
 
 /**
+ * Mengecilkan gambar blangko di browser sebelum diunggah: lebar maksimum = lebar kanvas sertifikat
+ * (2808px), JPEG kualitas 0,88. Foto/scan blangko yang semula 3–10 MB biasanya menjadi < 1 MB tanpa
+ * perbedaan yang terlihat. Ini penyebab utama halaman peserta lambat: blangko dikirim ke HP peserta
+ * sebagai teks base64 (+33% ukuran) lewat Google Apps Script yang lambat.
+ */
+async function compressBlangko(file) {
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = reject;
+      im.src = objectUrl;
+    });
+    const nw = img.naturalWidth || img.width, nh = img.naturalHeight || img.height;
+    const scale = Math.min(1, CONFIG.CERT_WIDTH / nw);
+    const w = Math.max(1, Math.round(nw * scale)), h = Math.max(1, Math.round(nh * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.88));
+    if (!blob || blob.size >= file.size) {
+      return { filename: file.name, mimeType: file.type, base64: await fileToBase64(file), before: file.size, after: file.size };
+    }
+    return {
+      filename: file.name.replace(/\.[a-z0-9]+$/i, '') + '.jpg',
+      mimeType: 'image/jpeg',
+      base64: await blobToBase64(blob),
+      before: file.size, after: blob.size
+    };
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+/**
  * Menghapus latar belakang putih pada gambar TTD/stempel/logo secara otomatis
  * di browser sebelum diunggah, lalu mengembalikan PNG (mimeType + base64).
  * - Berlaku untuk JPG (yang memang tidak punya kanal transparansi) MAUPUN PNG
@@ -894,7 +987,7 @@ async function stripWhiteBackground(file) {
     im.src = objectUrl;
   });
 
-  const MAX_DIM = 1400; // cukup tajam untuk TTD/stempel/logo, tapi ringan diproses
+  const MAX_DIM = 700; // TTD/stempel hanya ~12% lebar sertifikat (±340px), jadi 700px sudah sangat tajam & jauh lebih ringan
   let w = img.naturalWidth || img.width;
   let h = img.naturalHeight || img.height;
   const scale = Math.min(1, MAX_DIM / Math.max(w, h));
