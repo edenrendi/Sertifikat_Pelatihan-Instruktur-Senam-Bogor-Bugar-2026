@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>E-Sertifikat — Pelatihan Instruktur Senam Bogor Bugar 2026</title>
 <meta name="description" content="Cari dan unduh sertifikat resmi Pelatihan Instruktur Senam Bogor Bugar Tahun 2026, Kecamatan Cigombong.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;900&family=Inter:wght@400;500;600;700&family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@400;600;700;900&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -63,6 +66,10 @@
       <div class="result-status" id="resultStatus"><span class="dot"></span><span>Sertifikat terverifikasi asli</span></div>
       <div class="result-body">
         <div class="result-canvas-wrap">
+          <div class="cert-loading" id="certLoading">
+            <span class="spinner"></span>
+            <span class="cert-loading-text">Menyiapkan sertifikat…</span>
+          </div>
           <canvas id="certCanvas"></canvas>
         </div>
         <div>
@@ -72,6 +79,7 @@
               <div class="row"><dt>Nama Peserta</dt><dd id="metaNama">-</dd></div>
               <div class="row"><dt>Tempat Tugas</dt><dd id="metaInstansi">-</dd></div>
               <div class="row"><dt>Jabatan</dt><dd id="metaJabatan">-</dd></div>
+              <div class="row" id="rowSebagai" style="display:none;"><dt>Sebagai</dt><dd id="metaSebagai">-</dd></div>
               <div class="row"><dt>Tanggal Terbit</dt><dd id="metaTanggal">-</dd></div>
             </dl>
           </div>
@@ -94,9 +102,8 @@
 
 <div class="toast" id="toast"></div>
 
-<!-- Pustaka pihak ketiga (CDN) -->
+<!-- Pustaka pihak ketiga (CDN). jsPDF dimuat otomatis saat tombol Download ditekan. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
